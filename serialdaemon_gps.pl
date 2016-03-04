@@ -128,7 +128,10 @@ if ( $< != $WANT_UID ) {
 umask 0027;  # NOTE see also $WANT_FILEPERMS
 die "Error umask change failed" unless umask==oct('0027');
 warn "Debug: After: RUID=$<, EUID=$>, RGID=$(, EGID=$), umask=".sprintf("%o",umask)."\n" if $DEBUG;
-my $WANT_FILEPERMS = oct '0640'; # for some reason Daemon::Daemonize::daemonize clears the umask, so we'll have to chmod the files later
+# Daemon::Daemonize::daemonize clears the umask, so we'll have to chmod the files later
+# patch for this issue at https://github.com/haukex/Daemon-Daemonize/commit/a466ad0
+# TODO Later: pull request at https://github.com/robertkrimen/Daemon-Daemonize/pull/1
+my $WANT_FILEPERMS = oct '0640';
 
 # now for the user settings stuff
 use Time::HiRes qw/ gettimeofday /;
