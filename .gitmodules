@@ -1,0 +1,3 @@
+[submodule "Daemon-Daemonize"]
+	path = Daemon-Daemonize
+	url = https://github.com/haukex/Daemon-Daemonize.git
