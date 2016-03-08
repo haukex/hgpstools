@@ -109,6 +109,7 @@ warn "Debug: Before: RUID=$<, EUID=$>, RGID=$(, EGID=$), umask=".sprintf("%o",um
 my $WANT_UID = getpwnam('pi') or die "failed to get UID";
 my $WANT_GID = getgrnam('pi') or die "failed to get GID";
 my $WANT_GRP2 = getgrnam('dialout') or die "failed to get GID";
+my $WANT_UMASK = oct('0027');
 if ( $) !~ /^$WANT_GID\b.*\b$WANT_GRP2\b/ ) {
 	$) = "$WANT_GID $WANT_GRP2";  ## no critic (RequireLocalizedPunctuationVars)
 	die "Error: EGID change failed: $!" if $! || $) ne "$WANT_GID $WANT_GRP2";
@@ -125,13 +126,9 @@ if ( $< != $WANT_UID ) {
 	$< = $WANT_UID;  ## no critic (RequireLocalizedPunctuationVars)
 	die "Error: RUID change failed: $!" if $! || $< != $WANT_UID;
 }
-umask 0027;  # NOTE see also $WANT_FILEPERMS
-die "Error umask change failed" unless umask==oct('0027');
+umask $WANT_UMASK;
+die "Error: umask change failed" unless umask==$WANT_UMASK;
 warn "Debug: After: RUID=$<, EUID=$>, RGID=$(, EGID=$), umask=".sprintf("%o",umask)."\n" if $DEBUG;
-# Daemon::Daemonize::daemonize clears the umask, so we'll have to chmod the files later
-# patch for this issue at https://github.com/haukex/Daemon-Daemonize/commit/a466ad0
-# TODO Later: pull request at https://github.com/robertkrimen/Daemon-Daemonize/pull/1
-my $WANT_FILEPERMS = oct '0640';
 
 # now for the user settings stuff
 use Time::HiRes qw/ gettimeofday /;
@@ -185,7 +182,11 @@ my $MAX_ERRORS = 100;
 # ### Daemon Stuff ###
 use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
-use Daemon::Daemonize 0.0052 qw/ check_pidfile write_pidfile delete_pidfile daemonize /;
+use FindBin;
+# we want to use our patched version of Daemon::Daemonize until a new version gets released
+# see also http://github.com/robertkrimen/Daemon-Daemonize/pull/1
+use lib "$FindBin::RealBin/Daemon-Daemonize/lib";
+use Daemon::Daemonize 0.0052_01 qw/ check_pidfile write_pidfile delete_pidfile daemonize /;
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
 sub VERSION_MESSAGE { say {shift} q$serialdaemon.pl v1.00$; return }
@@ -214,7 +215,7 @@ elsif ($STARTSTOP eq 'status') {
 else { pod2usage }
 
 warn "Daemonizing...\n";
-daemonize(stdout=>$OUTFILE, stderr=>$ERRFILE);
+daemonize(stdout=>$OUTFILE, stderr=>$ERRFILE, umask=>$WANT_UMASK);
 local $SIG{__WARN__} = sub { warn "[".scalar(gmtime)." UTC] (PID $$) ".shift };
 local $SIG{__DIE__} = sub { die "[".scalar(gmtime)." UTC] (PID $$) FATAL ".shift };
 my $run=1;
@@ -224,8 +225,7 @@ local $|=1;
 write_pidfile($PIDFILE);
 my $PID_FILE_WRITTEN = 1;
 END { delete_pidfile($PIDFILE) if $PID_FILE_WRITTEN }
-chmod($WANT_FILEPERMS, $PIDFILE, $OUTFILE, $ERRFILE)==3
-	or warn "Warning: Failed to change perms on output files\n";
+die "Error: desired umask not in effect" unless umask==$WANT_UMASK;
 
 
 # ### Main Loop ###

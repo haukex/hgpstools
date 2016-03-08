@@ -55,6 +55,19 @@ A brief overview of the tools:
 	Converts timestamps embedded in NMEA log files into fake NMEA records.
 
 
+Other Notes
+-----------
+
+This project currently includes a patched version of the Perl module
+`Daemon::Daemonize` as a
+[git submodule](http://git-scm.com/book/en/v2/Git-Tools-Submodules).
+When cloning this repository with `git` you should use the command
+`git clone --recursive https://bitbucket.org/haukex/hgpstools.git`.
+Because this patched version of the module is used directly without installing
+it, if you have problems you can use the command `prove -l` in the
+`Daemon-Daemonize` subdirectory to run the module's tests on your system.
+
+
 Author, Copyright, and License
 ------------------------------
 
