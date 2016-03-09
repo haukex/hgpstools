@@ -23,9 +23,10 @@ L<crontab(5)> entry (note: C<sudo apt-get install socat>):
 The string used can be completely random; the idea is for it to be unique
 to your device so you can identify it.
 
-An alternate way to listen is via L<socat(1)> (but this will receive
-any message, not just the specific one sent above):
+Two alternate ways to listen are via L<netcat(1)> or L<socat(1)>
+(but this will receive any message, not just the specific one sent above):
 
+ netcat -ul 12340           # may need to use -p12340 instead
  socat -u udp-recv:12340 -
 
 Don't forget to open the port for incoming UDP traffic on your local firewall,

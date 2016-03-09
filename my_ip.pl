@@ -17,7 +17,8 @@ before the IP addresses.
 =head1 DETAILS
 
 One usage example is to put something like the following in your L<crontab(5)>
-(every 5 minutes, store the IP addresses in a file on a remote machine):
+(every 5 minutes, store the IP addresses in a file on a remote machine;
+note you need to have SSH key-based auth set up with that machine):
 
  */5 * * * *  /home/pi/my_ip.pl | ssh user@hostname "cat >/home/user/pi_ip.txt"
 
