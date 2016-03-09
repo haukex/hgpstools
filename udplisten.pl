@@ -8,12 +8,20 @@ use 5.010; no feature 'switch';
 Waits for a specific message on a UDP port (see variable C<$EXPECT> in the code),
 and when the message is received it outputs the IP address from which it was received.
 
+ udplisten.pl [-m]
+
+The C<-m> switch causes this tool to output the entire message it received
+in addition to the IP address.
+
 =head1 DETAILS
 
 The message can be transmitted, for example, via the following
 L<crontab(5)> entry (note: C<sudo apt-get install socat>):
 
  * * * * *  echo "HELLO xyZ129" | socat - UDP-DATAGRAM:255.255.255.255:12340,broadcast
+
+The string used can be completely random; the idea is for it to be unique
+to your device so you can identify it.
 
 An alternate way to listen is via L<socat(1)> (but this will receive
 any message, not just the specific one sent above):
@@ -46,16 +54,19 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-my $EXPECT = "HELLO xyZ129\n";
+# The regular expression to be matched against incoming messages;
+# can be an exact match (via \A..\z anchors) or a partial match,
+# which is useful in combination with the -m switch.
+my $EXPECT = qr/\AHELLO xyZ129\n\z/;
 
 use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
 use IO::Socket::INET ();
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
-sub VERSION_MESSAGE { say {shift} q$udplisten.pl v1.00$; return }
+sub VERSION_MESSAGE { say {shift} q$udplisten.pl v1.10$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-getopts('', \my %opts) or pod2usage;
+getopts('m', \my %opts) or pod2usage;
 
 my $sock = IO::Socket::INET->new(
 		LocalPort => 12340,
@@ -66,8 +77,14 @@ RXLOOP: while (1) {
 	defined $sock->recv(my $rx,1024)
 		or die "error during recv: $!";
 	my $peeraddr = $sock->peerhost;
-	if ($rx eq $EXPECT) {
-		print "$peeraddr\n";
+	if ($rx=~$EXPECT) {
+		if ($opts{m}) {
+			print "FROM $peeraddr:\n$rx";
+			print "\n" unless $rx=~/\n\z/;
+		}
+		else {
+			print "$peeraddr\n";
+		}
 		last RXLOOP;
 	}
 	else

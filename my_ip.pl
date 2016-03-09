@@ -9,12 +9,23 @@ Prints a list of this system's IP address(es) with timestamps
 (only active interfaces and excluding loopback).
 If no IP address can be determined, reports the IP 0.0.0.0.
 
+ my_ip.pl [-p MESSAGE]
+
+The C<-p> option can be used to specify a message that is output
+before the IP addresses.
+
 =head1 DETAILS
 
 One usage example is to put something like the following in your L<crontab(5)>
 (every 5 minutes, store the IP addresses in a file on a remote machine):
 
  */5 * * * *  /home/pi/my_ip.pl | ssh user@hostname "cat >/home/user/pi_ip.txt"
+
+Or, this tool can be combined with C<udplisten.pl>, if C<udplisten.pl>'s
+C<$EXPECT> variable is set to a partial match and its C<-m> switch is
+used to output the received message.
+
+ * * * * *  /home/pi/my_ip.pl -p "HELLO xyZ129" | socat - UDP-DATAGRAM:255.255.255.255:12340,broadcast
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
@@ -42,9 +53,14 @@ use Pod::Usage 'pod2usage';
 use IO::Interface::Simple ();
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
-sub VERSION_MESSAGE { say {shift} q$my_ip.pl v1.00$; return }
+sub VERSION_MESSAGE { say {shift} q$my_ip.pl v1.10$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-getopts('', \my %opts) or pod2usage;
+getopts('p:', \my %opts) or pod2usage;
+
+if (defined $opts{p}) {
+	print $opts{p};
+	print "\n" unless $opts{p}=~/\n\z/;
+}
 
 my $cnt = 0;
 for my $if (IO::Interface::Simple->interfaces) {
