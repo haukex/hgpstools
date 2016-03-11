@@ -54,7 +54,9 @@ but should work on other models too.
 3.	Install additional packages via `sudo apt-get install ...` or `aptitude`:
 	
 	a.	Required: Install the following packages: `libio-interface-perl`, `socat`,
-		`libpath-class-perl`, `libdevice-serialport-perl`
+		`libpath-class-perl`, `libdevice-serialport-perl`;
+		for `filter_ts.pl` the additional requirements are:
+		`libdatetime-perl`, `libdatetime-format-strptime-perl`
 		
 	b.	Recommended: Install the package `ufw`, then do `sudo ufw allow OpenSSH`
 		and `sudo ufw enable` (status can be checked via
