@@ -184,7 +184,7 @@ use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
 use FindBin;
 # we want to use our patched version of Daemon::Daemonize until a new version gets released
-# see also http://github.com/robertkrimen/Daemon-Daemonize/pull/1
+# see also http://github.com/robertkrimen/Daemon-Daemonize/pull/2
 use lib "$FindBin::RealBin/Daemon-Daemonize/lib";
 use Daemon::Daemonize 0.0052_01 qw/ check_pidfile write_pidfile delete_pidfile daemonize /;
 
