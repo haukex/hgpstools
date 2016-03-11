@@ -38,8 +38,8 @@ in with the NMEA stream).
 
 This script contains an init script header, and it can be installed
 as a service directly, as follows (adjust paths as necessary).
-When this script is run as root, it changes its own UID and GID to that
-of the configured user.
+This script attempts to change its UID and GID as configured, which
+is useful when running as root.
 
  sudo ln -vs /home/user/serialdaemon_gps.pl /etc/init.d/serialdaemon_gps
  sudo update-rc.d serialdaemon_gps defaults
@@ -98,42 +98,27 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-my $DEBUG = 0;
-
 # ### Application-Specific User Settings ###
 
-# FIRST, reduce permissions by changing user & group
-# (in case this is run by root, which is likely under init)
-# note: we're assuming we need to be in group dialout
-warn "Debug: Before: RUID=$<, EUID=$>, RGID=$(, EGID=$), umask=".sprintf("%o",umask)."\n" if $DEBUG;
-my $WANT_UID = getpwnam('pi') or die "failed to get UID";
-my $WANT_GID = getgrnam('pi') or die "failed to get GID";
-my $WANT_GRP2 = getgrnam('dialout') or die "failed to get GID";
-my $WANT_UMASK = oct('0027');
-if ( $) !~ /^$WANT_GID\b.*\b$WANT_GRP2\b/ ) {
-	$) = "$WANT_GID $WANT_GRP2";  ## no critic (RequireLocalizedPunctuationVars)
-	die "Error: EGID change failed: $!" if $! || $) ne "$WANT_GID $WANT_GRP2";
-}
-if ( $( != $WANT_GID ) {
-	$( = $WANT_GID;  ## no critic (RequireLocalizedPunctuationVars)
-	die "Error: RGID change failed: $!" if $! || $( != $WANT_GID;
-}
-if ( $> != $WANT_UID ) {
-	$> = $WANT_UID;  ## no critic (RequireLocalizedPunctuationVars)
-	die "Error: EUID change failed: $!" if $! || $> != $WANT_UID;
-}
-if ( $< != $WANT_UID ) {
-	$< = $WANT_UID;  ## no critic (RequireLocalizedPunctuationVars)
-	die "Error: RUID change failed: $!" if $! || $< != $WANT_UID;
-}
-umask $WANT_UMASK;
-die "Error: umask change failed" unless umask==$WANT_UMASK;
-warn "Debug: After: RUID=$<, EUID=$>, RGID=$(, EGID=$), umask=".sprintf("%o",umask)."\n" if $DEBUG;
+my $DEBUG = 0;
 
-# now for the user settings stuff
-use Time::HiRes qw/ gettimeofday /;
+# the following $user just decides between my computer and my RPi,
+# you can do this however you like
+my $user = -e '/home/haukex' ? 'haukex' : 'pi';
+die "I'm not sure what box I'm running on, please check the configuration"
+	unless -e "/home/$user";
+my $WANT_UID = getpwnam($user) or die "failed to get UID";
+my $WANT_GID = getgrnam($user) or die "failed to get GID";
+my $WANT_GRP2 = getgrnam('dialout') or die "failed to get GID of dialout";
+my $WANT_UMASK = oct('0027');
 my $SERIALPORT = '/dev/usb_gps';
 my $BAUDRATE = 4800;
+my $PIDFILE = "/home/$user/serialdaemon/serialdaemon_gps.pid";
+my $OUTFILE = "/home/$user/serialdaemon/gps_out.txt";
+my $ERRFILE = "/home/$user/serialdaemon/gps_err.txt";
+my $MAX_ERRORS = 100;
+
+use Time::HiRes qw/ gettimeofday /;
 my $HANDLE_LINE = sub { # code should edit $_; return value ignored
 		s/^\x00*|\x00*$//g; # ignore NULs at beginning and end (seems to happen sometimes)
 		return unless $_; # nothing needed
@@ -171,13 +156,13 @@ my $HANDLE_STATUS = sub { # code should edit $_; return value ignored
 		$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if $_;
 		return;
 	};
-my $PIDFILE = '/home/pi/serialdaemon/serialdaemon_gps.pid';
-my $OUTFILE = '/home/pi/serialdaemon/gps_out.txt';
-my $ERRFILE = '/home/pi/serialdaemon/gps_err.txt';
-my $MAX_ERRORS = 100;
 
 # ###
 
+# FIRST, set our PID/GID/umask
+set_uid_gid();
+umask $WANT_UMASK;
+die "Error: umask change failed" unless umask==$WANT_UMASK;
 
 # ### Daemon Stuff ###
 use Getopt::Std 'getopts';
@@ -306,6 +291,30 @@ sub error {
 		{ die "Error: $msg; too many errors ($errs), aborting\n" }
 	else
 		{ warn "Error: $msg; continuing ($errs errors)\n" }
+	return;
+}
+
+sub set_uid_gid {
+	# reduce permissions by changing user & group
+	# (in case this is run by root, which is likely under init)
+	warn "Debug: Before: RUID=$<, EUID=$>, RGID=$(, EGID=$), umask=".sprintf("%o",umask)."\n" if $DEBUG;
+	if ( $) !~ /^$WANT_GID\b.*\b$WANT_GRP2\b/ ) {
+		$) = "$WANT_GID $WANT_GRP2";  ## no critic (RequireLocalizedPunctuationVars)
+		die "Error: EGID change failed: $!" if $! || $) ne "$WANT_GID $WANT_GRP2";
+	}
+	if ( $( != $WANT_GID ) {
+		$( = $WANT_GID;  ## no critic (RequireLocalizedPunctuationVars)
+		die "Error: RGID change failed: $!" if $! || $( != $WANT_GID;
+	}
+	if ( $> != $WANT_UID ) {
+		$> = $WANT_UID;  ## no critic (RequireLocalizedPunctuationVars)
+		die "Error: EUID change failed: $!" if $! || $> != $WANT_UID;
+	}
+	if ( $< != $WANT_UID ) {
+		$< = $WANT_UID;  ## no critic (RequireLocalizedPunctuationVars)
+		die "Error: RUID change failed: $!" if $! || $< != $WANT_UID;
+	}
+	warn "Debug: After: RUID=$<, EUID=$>, RGID=$(, EGID=$), umask=".sprintf("%o",umask)."\n" if $DEBUG;
 	return;
 }
 
