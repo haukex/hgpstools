@@ -29,7 +29,9 @@ are variables set at the beginning of the script).
 The subroutine stored in C<$HANDLE_LINE> handles checking input format as
 well as manipulating the input lines (such as adding timestamps).
 If you want this script to handle something other than NMEA, you can modify
-that subroutine.
+that subroutine. Another simple possibility is to set C<$CHECK_NMEA> to
+a false value, and then the current C<$HANDLE_LINE> implementation
+simply logs input lines with a timestamp without checking their format.
 
 The subroutine stored in C<$HANDLE_STATUS> handles the manipulation of
 status messages from the daemon such as "start", "stop", "connect" and "disconnect".
@@ -119,30 +121,34 @@ my $ERRFILE = "/home/$user/serialdaemon/gps_err.txt";
 my $MAX_ERRORS = 100;
 
 use Time::HiRes qw/ gettimeofday /;
+# the following variables configure the current $HANDLE_LINE implementation
+my $STRIP_NULS = 1; # strip NULs at beginning and end of lines (seems to happen sometimes)
+my $CHECK_NMEA = 1;
+my $ESCAPE_NONPRINTABLE = 1; # escape all nonprintable and non-ASCII chars
 my $HANDLE_LINE = sub { # code should edit $_; return value ignored
-	s/^\x00*|\x00*$//g; # ignore NULs at beginning and end (seems to happen sometimes)
+	$STRIP_NULS and s/^\x00*|\x00*$//g;
 	return unless $_; # nothing needed
 	my $err;
-	if (my ($str,$sum) = /^\$(.+?)(?:\*([A-Fa-f0-9]{2}))?$/) {
-		if ($sum) {
-			my $xor = 0;
-			$xor ^= ord for split //, $str;
-			my $got = sprintf '%02X', $xor;
-			$sum = uc $sum;
-			$sum eq $got or $err = "Checksum calc $got, exp $sum";
+	if ($CHECK_NMEA) {
+		if (my ($str,$sum) = /^\$(.+?)(?:\*([A-Fa-f0-9]{2}))?$/) {
+			if ($sum) {
+				my $xor = 0;
+				$xor ^= ord for split //, $str;
+				my $got = sprintf '%02X', $xor;
+				$sum = uc $sum;
+				$sum eq $got or $err = "Checksum calc $got, exp $sum";
+			}
 		}
+		else
+			{ $err = "Invalid format" }
 	}
-	else
-		{ $err = "Invalid format" }
 	if ($err) {
-		my $msg = /[^\x20-\x7E]/ ? unpack('H*',$_) : "\"$_\"";
-		warn "Ignoring input ($err): $msg\n";
+		s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
+		warn "Ignoring input ($err): $_\n";
 		undef $_;
 		return;
 	}
-	# escape all nonprintable and non-ASCII chars
-	#TODO: maybe nonprintables are bad in this format? (incl. NULs above)
-	s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
+	$ESCAPE_NONPRINTABLE and s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
 	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if $_;
 	return;
 };
