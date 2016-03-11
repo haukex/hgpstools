@@ -120,42 +120,42 @@ my $MAX_ERRORS = 100;
 
 use Time::HiRes qw/ gettimeofday /;
 my $HANDLE_LINE = sub { # code should edit $_; return value ignored
-		s/^\x00*|\x00*$//g; # ignore NULs at beginning and end (seems to happen sometimes)
-		return unless $_; # nothing needed
-		my $err;
-		if (my ($str,$sum) = /^\$(.+?)(?:\*([A-Fa-f0-9]{2}))?$/) {
-			if ($sum) {
-				my $xor = 0;
-				$xor ^= ord for split //, $str;
-				my $got = sprintf '%02X', $xor;
-				$sum = uc $sum;
-				$sum eq $got or $err = "Checksum calc $got, exp $sum";
-			}
+	s/^\x00*|\x00*$//g; # ignore NULs at beginning and end (seems to happen sometimes)
+	return unless $_; # nothing needed
+	my $err;
+	if (my ($str,$sum) = /^\$(.+?)(?:\*([A-Fa-f0-9]{2}))?$/) {
+		if ($sum) {
+			my $xor = 0;
+			$xor ^= ord for split //, $str;
+			my $got = sprintf '%02X', $xor;
+			$sum = uc $sum;
+			$sum eq $got or $err = "Checksum calc $got, exp $sum";
 		}
-		else
-			{ $err = "Invalid format" }
-		if ($err) {
-			my $msg = /[^\x20-\x7E]/ ? unpack('H*',$_) : "\"$_\"";
-			warn "Ignoring input ($err): $msg\n";
-			undef $_;
-			return;
-		}
-		# escape all nonprintable and non-ASCII chars
-		#TODO: maybe nonprintables are bad in this format? (incl. NULs above)
-		s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
-		$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if $_;
+	}
+	else
+		{ $err = "Invalid format" }
+	if ($err) {
+		my $msg = /[^\x20-\x7E]/ ? unpack('H*',$_) : "\"$_\"";
+		warn "Ignoring input ($err): $msg\n";
+		undef $_;
 		return;
-	};
+	}
+	# escape all nonprintable and non-ASCII chars
+	#TODO: maybe nonprintables are bad in this format? (incl. NULs above)
+	s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
+	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if $_;
+	return;
+};
 my $HANDLE_STATUS = sub { # code should edit $_; return value ignored
-		return unless $_; # nothing needed
-		unless (/^[A-Za-z0-9_]/) {
-			warn "Ignoring invalid status \"$_\"\n";
-			undef $_;
-			return;
-		}
-		$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if $_;
+	return unless $_; # nothing needed
+	unless (/^[A-Za-z0-9_]/) {
+		warn "Ignoring invalid status \"$_\"\n";
+		undef $_;
 		return;
-	};
+	}
+	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if $_;
+	return;
+};
 
 # ###
 
