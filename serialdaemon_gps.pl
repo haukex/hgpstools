@@ -127,7 +127,7 @@ my $CHECK_NMEA = 1;
 my $ESCAPE_NONPRINTABLE = 1; # escape all nonprintable and non-ASCII chars
 my $HANDLE_LINE = sub { # code should edit $_; return value ignored
 	$STRIP_NULS and s/^\x00*|\x00*$//g;
-	return unless $_; # nothing needed
+	return unless length $_; # nothing needed
 	my $err;
 	if ($CHECK_NMEA) {
 		if (my ($str,$sum) = /^\$(.+?)(?:\*([A-Fa-f0-9]{2}))?$/) {
@@ -149,17 +149,17 @@ my $HANDLE_LINE = sub { # code should edit $_; return value ignored
 		return;
 	}
 	$ESCAPE_NONPRINTABLE and s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
-	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if $_;
+	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
 	return;
 };
 my $HANDLE_STATUS = sub { # code should edit $_; return value ignored
-	return unless $_; # nothing needed
+	return unless length $_; # nothing needed
 	unless (/^[A-Za-z0-9_]/) {
 		warn "Ignoring invalid status \"$_\"\n";
 		undef $_;
 		return;
 	}
-	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if $_;
+	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
 	return;
 };
 
@@ -225,7 +225,7 @@ use Device::SerialPort 1.04 ();
 my $do_status = sub {
 		local $_ = shift;
 		$HANDLE_STATUS->();
-		print $_ if $_;
+		print $_ if length $_;
 	};
 
 warn "Entering main loop...\n";
@@ -275,7 +275,7 @@ MAINLOOP: while($run) {
 			local $_ = $buf;
 			s/\x0D$//; # CRLF -> LF (that means we handle LF and CRLF, but not pure CR)
 			$HANDLE_LINE->(); # feed chomped line through user code
-			print $_ if $_;
+			print $_ if length $_;
 			$buf = '';
 		}
 		# just a regular byte of input
