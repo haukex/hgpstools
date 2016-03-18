@@ -5,8 +5,6 @@ use 5.010; no feature 'switch';
 
 =head1 SYNOPSIS
 
-B<This is a work in progress.> Please use C<serialdaemon_gps.pl> for now.
-
 This script reads line-based data (CRLF or LF) from a serial port,
 optionally checks and rewrites it, and writes it to C<STDOUT>.
 It also handles USB devices being hot-plugged.
@@ -80,7 +78,8 @@ a file like the following in F</etc/udev/rules.d/> (e.g. F<90-usbgps.rules>):
 
  ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="usb_gps"
 
-and then your device will always be available as F</dev/usb_gps>.
+and then your device will always be available as F</dev/usb_gps>
+(you may need to do a C<sudo service udev restart>).
 (The above IDs are for a Navilock NL-302U.)
 
 Hint: For debugging, you can simply C<cat /dev/ttyUSB0> after setting

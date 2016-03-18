@@ -54,7 +54,7 @@ but should work on other models too.
 3.	Install additional packages via `sudo apt-get install ...` or `aptitude`:
 	
 	a.	Required: Install the following packages: `libio-interface-perl`, `socat`,
-		`libpath-class-perl`, `libdevice-serialport-perl`;
+		`libdaemon-control-perl`, `libdevice-serialport-perl`;
 		for `filter_ts.pl` the additional requirements are:
 		`libdatetime-perl`, `libdatetime-format-strptime-perl`
 		
@@ -85,17 +85,18 @@ but should work on other models too.
 	to broadcast its IP address as described in `udplisten.pl` and/or `my_ip.pl`.
 	(When making entries in `crontab`, don't forget to use the correct pathnames.)
 	
-5.	The *most current* information to install the logging daemon is in the file
-	`serialdaemon_gps.pl`! Here is a short summary of the steps needed at
-	the time of writing:
+5.	The *most current* information to install the NMEA logging daemon is in the files
+	referenced below! Here is a short summary of the steps needed at the time of writing:
 	
+		# the following is from serlog.pl
 		$ echo 'ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="usb_gps"' | sudo tee /etc/udev/rules.d/90-usbgps.rules
 		$ sudo service udev restart
 		$ sudo adduser pi dialout
-		$ mkdir /home/pi/serialdaemon
-		$ sudo ln -vs /home/pi/hgpstools/serialdaemon_gps.pl /etc/init.d/serialdaemon_gps
-		$ sudo update-rc.d serialdaemon_gps defaults
-		$ sudo service serialdaemon_gps start
+		# the following is from serlog_nmea_daemon.pl
+		$ ./serlog_nmea_daemon.pl get_init_file | sudo tee /etc/init.d/serlog_nmea
+		$ sudo chmod 755 /etc/init.d/serlog_nmea
+		$ sudo update-rc.d serlog_nmea defaults
+		$ sudo service serlog_nmea start
 
 
 Author, Copyright, and License

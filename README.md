@@ -45,10 +45,12 @@ A brief overview of the tools:
 
 	Listen for a specific UDP message and report the sender's IP address.
 
-*	**`serialdaemon_gps.pl`**
+*	**`serlog.pl`**
 
-	A daemon that logs NMEA messages from a serial port
-	(can be adapted for logging other serial data)
+	A generic serial port logger with support for hot-plugging USB/RS232 adapters.
+	In combination with `serlog_conf_nmea.pl`, it processes NMEA data,
+	and `serlog_nmea_daemon.pl` turns it into a daemon.
+	These two files can be copied and adapted to log other kinds of data.
 
 *	**`filter_ts.pl`**
 

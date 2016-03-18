@@ -13,10 +13,11 @@ the NMEA line they are found in).
 
 =head1 DETAILS
 
-Currently handles the timestamps added by C<serialdaemon_gps.pl>
+Currently handles the timestamps added by C<serlog_conf_nmea.pl>
 as well as a Windows logger software which embeds timestamps
 in angle brackets in random places in lines.
-Also, the status messages added by C<serialdaemon_gps.pl> are removed.
+Also, the status messages added by C<serlog.pl>
+with C<serlog_conf_nmea.pl>'s timestamps are removed.
 
 The C<-t> option allows you to specify a timezone other than the current
 local time zone for timestamps that need conversion (currently only the
@@ -66,9 +67,9 @@ my $found_pcts=0;
 while(<>) {
 	s/\x0D?\x0A$//;
 	$found_pcts++ if /\$PCTS/;
-	# skip status lines from "serialdaemon_gps.pl"
+	# skip status lines from "serlog.pl" (with "serlog_conf_nmea.pl" timestamp)
 	next if /^([0-9]+(\.[0-9]{6})?)[\t ]+(START|STOP|CONNECT|DISCONNECT|RELOAD)$/;
-	# timestamp prefixed to each line by "serialdaemon_gps.pl"
+	# timestamp prefixed to each line by "serlog_conf_nmea.pl"
 	# should be Time::HiRes::gettimeofday printed as "%d.%06d"
 	if (s/^([0-9]+(?:\.[0-9]{6})?)[\t ]+//) {
 		nmea_rec_out("PCTS,$1");
