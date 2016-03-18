@@ -37,6 +37,15 @@ multiple group IDs. As a workaround, in order to access the serial port,
 currently the group C<dialout> is used. This means that files created
 will be in that group.
 
+There is an example L<logrotate(8)> configuration in the file
+F<serlog_nmea.logrotate> that you can either call directly via
+C<logrotate serlog_nmea.logrotate> or set up for daily exection via
+
+ sudo ln -s /home/pi/hgpstools/serlog_nmea.logrotate /etc/logrotate.d/serlog_nmea
+
+B<Note> that L<logrotate(8)> will delete old log files set set up in this
+configuration, so by itself it is B<not> a solution for long-term data archival.
+
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
 Copyright (c) 2016 Hauke Daempfling (haukex@zero-g.net)
@@ -63,11 +72,14 @@ use Daemon::Control;
 exit Daemon::Control->new(
 	name         => 'serlog_nmea',
 	program      => '/home/pi/hgpstools/serlog.pl',
-	program_args => [ '/home/pi/hgpstools/serlog_conf_nmea.pl' ],
+	program_args => [
+		'-o', '/home/pi/serlog/nmea_data.txt',
+		'/home/pi/hgpstools/serlog_conf_nmea.pl' ],
 	user         => 'pi',
 	group        => 'dialout',
 	umask        => oct('0027'),
 	help         => "Please run `perldoc $0` for help.\n",
+	# note that since we use the -o option above, the stdout_file *should* remain empty
 	stdout_file  => '/home/pi/serlog/nmea_out.txt',
 	stderr_file  => '/home/pi/serlog/nmea_err.txt',
 	pid_file     => '/home/pi/serlog/nmea.pid',

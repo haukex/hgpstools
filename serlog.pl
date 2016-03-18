@@ -9,14 +9,15 @@ This script reads line-based data (CRLF or LF) from a serial port,
 optionally checks and rewrites it, and writes it to C<STDOUT>.
 It also handles USB devices being hot-plugged.
 
- serlog.pl (CONFIGFILE|-C) [-p PORT] [-b BAUD]
+ serlog.pl (CONFIGFILE|-C) [-p PORT] [-b BAUD] [-o OUTFILE]
 
 B<Warning:> C<CONFIGFILE> will be executed by this script. Only use files you trust!
 
 C<CONFIGFILE> must be an absolute filename.
 If you don't want to specify a config file and use the defaults instead,
 you must specify the C<-C> switch. In either case, you can optionally
-set/override the port and baud rate via the C<-p> and C<-b> options.
+set or override the settings from the config file with the command line
+options shown above.
 
 =head1 DETAILS
 
@@ -30,8 +31,10 @@ The config file must return a true value (typically by ending with C<1;>).
 
 =item C<$SERIALPORT> - The filename of the serial port device.
 The default is F</dev/ttyUSB0>.
+This setting can be overridden with the C<-p> command line option.
 
 =item C<$BAUDRATE> - The baud rate. The default is 9600.
+This setting can be overridden with the C<-b> command line option.
 
 =item C<$HANDLE_LINE> - This must be a code reference, it is called for
 every line received. The line is passed via C<$_> I<with the end-of-line stripped>,
@@ -43,6 +46,11 @@ on the serial port is passed through unchanged.
 =item C<$HANDLE_STATUS> - Like C<$HANDLE_LINE>, but for status messages
 from this script itself ("CONNECT", "DISCONNECT", etc.). If you don't want
 these status messages mixed in with the received data, do C<$_="";>.
+
+=item C<$OUTFILE> - If set, this specifies the filename to which output
+should be redirected (append mode).
+The default is for this to be unset, meaning data is written to STDOUT.
+This setting can be overridden with the C<-o> command line option.
 
 =item C<$MAX_ERRORS> - The maximum number of errors that may be encountered
 while reading from the serial port before the script terminates. Once in a
@@ -57,6 +65,8 @@ You may send a C<SIGHUP> to this process for it to reload the configuration file
 and reopen the serial port (note that this can sometimes cause a read error);
 for example: C<pkill -HUP -f serlog>.
 The process can be stopped cleanly via a C<SIGTERM> or C<SIGINT> (typically C<Ctrl-C>).
+If you have set an C<$OUTFILE>, you can send the process a C<SIGUSR1>
+for that output file to be reopened (useful for e.g. L<logrotate(8)>).
 
 You may need to add the user to the group C<dialout> (in Debian, this
 normally gives full and direct access to serial ports):
@@ -114,6 +124,7 @@ our $SERIALPORT = '/dev/ttyUSB0';
 our $BAUDRATE = 9600;
 our $HANDLE_LINE = sub { $_.="\n" };
 our $HANDLE_STATUS = sub { $_.="\n" };
+our $OUTFILE = undef;
 our $MAX_ERRORS = 100;
 
 # ### Init Code ###
@@ -124,10 +135,11 @@ use File::Spec::Functions qw/ file_name_is_absolute /;
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
 sub VERSION_MESSAGE { say {shift} q$serlog.pl v1.00$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-getopts('Cp:b:', \my %opts) or pod2usage;
+getopts('Cp:b:o:', \my %opts) or pod2usage;
 our $NO_CONFIGFILE = !!$opts{C};
 our $OVRD_SERIALPORT = $opts{p};
 our $OVRD_BAUDRATE = $opts{b};
+our $OVRD_OUTFILE = $opts{o};
 pod2usage('invalid baud rate')
 	if defined $OVRD_BAUDRATE && $OVRD_BAUDRATE!~/^\d+$/;
 our $CONFIGFILE;
@@ -142,14 +154,9 @@ else {
 
 local $SIG{__WARN__} = sub { warn "[".scalar(gmtime)." UTC] (PID $$) ".shift };
 local $SIG{__DIE__} = sub { die "[".scalar(gmtime)." UTC] (PID $$) FATAL ".shift };
-my $run=1;
-my $reload=0;
-local $SIG{INT} = sub { warn "Caught SIGINT, stopping...\n"; $run=0 };
-local $SIG{TERM} = sub { warn "Caught SIGTERM, stopping...\n"; $run=0 };
-local $SIG{HUP} = sub { warn "Caught SIGHUP, reloading...\n"; $reload=1 };
-local $|=1;
 
 load_config() unless $NO_CONFIGFILE;
+open_output();
 
 # ### Main Loop ###
 use Device::SerialPort 1.04 ();
@@ -160,6 +167,14 @@ my $do_status = sub {
 		print $_ if length $_;
 	};
 
+my $run=1;
+my $reload=0;
+my $signaled=0;
+local $SIG{INT}  = sub { warn "Caught SIGINT, stopping...\n"; $run=0 };
+local $SIG{TERM} = sub { warn "Caught SIGTERM, stopping...\n"; $run=0 };
+local $SIG{HUP}  = sub { warn "Caught SIGHUP, reloading...\n"; $reload=1 };
+local $SIG{USR1} = sub { warn "Caught SIGUSR1, reopening output...\n"; $signaled=1; open_output() };
+
 warn "Entering main loop...\n";
 $do_status->("START");
 MAINLOOP: while($run) {
@@ -167,6 +182,7 @@ MAINLOOP: while($run) {
 		$do_status->("RELOAD");
 		if ($NO_CONFIGFILE) { warn "Note: No config file to reload\n" }
 		else { load_config() }
+		open_output();
 		$reload=0;
 	}
 	if (!-e $SERIALPORT) {
@@ -195,6 +211,7 @@ MAINLOOP: while($run) {
 	$do_status->("CONNECT");
 	my $buf='';
 	READLOOP: while($run && !$reload) {
+		$signaled=0;
 		my ($incnt, $in) = $port->read(1);
 		last MAINLOOP unless $run;
 		next MAINLOOP if $reload;
@@ -205,6 +222,7 @@ MAINLOOP: while($run) {
 				undef $port;
 				next MAINLOOP;
 			}
+			elsif($signaled) {} # read() returned due to a signal that we handled, not an error
 			else { error("Read failed (timeout?)") }
 			next READLOOP;
 		}
@@ -240,7 +258,17 @@ sub load_config {
 	}
 	$SERIALPORT = $OVRD_SERIALPORT if defined $OVRD_SERIALPORT;
 	$BAUDRATE = $OVRD_BAUDRATE if defined $OVRD_BAUDRATE;
+	$OUTFILE = $OVRD_OUTFILE if defined $OVRD_OUTFILE;
 	return;
+}
+
+sub open_output {
+	if (defined $OUTFILE) {
+		open my $fh, '>>', $OUTFILE or die "Error: Failed to open $OUTFILE for append: $!\n";
+		close or error("Failed to close output filehandle: $!");
+		select($fh);
+	}
+	$|=1; ## no critic (RequireLocalizedPunctuationVars)
 }
 
 sub error {
