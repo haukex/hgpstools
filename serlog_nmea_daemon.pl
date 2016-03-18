@@ -36,6 +36,7 @@ I<Note:> At the moment, L<Daemon::Control> does not support setting
 multiple group IDs. As a workaround, in order to access the serial port,
 currently the group C<dialout> is used. This means that files created
 will be in that group.
+See also L<https://github.com/symkat/Daemon-Control/pull/60>.
 
 There is an example L<logrotate(8)> configuration in the file
 F<serlog_nmea.logrotate> that you can either call directly via
