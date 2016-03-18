@@ -67,7 +67,7 @@ while(<>) {
 	s/\x0D?\x0A$//;
 	$found_pcts++ if /\$PCTS/;
 	# skip status lines from "serialdaemon_gps.pl"
-	next if /^([0-9]+(\.[0-9]{6})?)[\t ]+(START|STOP|CONNECT|DISCONNECT)$/;
+	next if /^([0-9]+(\.[0-9]{6})?)[\t ]+(START|STOP|CONNECT|DISCONNECT|RELOAD)$/;
 	# timestamp prefixed to each line by "serialdaemon_gps.pl"
 	# should be Time::HiRes::gettimeofday printed as "%d.%06d"
 	if (s/^([0-9]+(?:\.[0-9]{6})?)[\t ]+//) {

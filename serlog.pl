@@ -7,27 +7,58 @@ use 5.010; no feature 'switch';
 
 B<This is a work in progress.> Please use C<serialdaemon_gps.pl> for now.
 
-This is a logger that logs line-based data (CRLF or LF) from a serial port.
+This script reads line-based data (CRLF or LF) from a serial port,
+optionally checks and rewrites it, and writes it to C<STDOUT>.
 It also handles USB devices being hot-plugged.
 
- serlog.pl CONFIGFILE.pl
+ serlog.pl (CONFIGFILE|-C) [-p PORT] [-b BAUD]
 
-B<Warning:> C<CONFIGFILE.pl> will be executed by this script.
-For security, only use absolute pathnames and scripts you trust.
+B<Warning:> C<CONFIGFILE> will be executed by this script. Only use files you trust!
+
+C<CONFIGFILE> must be an absolute filename.
+If you don't want to specify a config file and use the defaults instead,
+you must specify the C<-C> switch. In either case, you can optionally
+set/override the port and baud rate via the C<-p> and C<-b> options.
 
 =head1 DETAILS
 
-The subroutine stored in C<$HANDLE_LINE> handles checking input format as
-well as manipulating the input lines (such as adding timestamps).
-If you want this script to handle something other than NMEA, you can modify
-that subroutine. Another simple possibility is to set C<$CHECK_NMEA> to
-a false value, and then the current C<$HANDLE_LINE> implementation
-simply logs input lines with a timestamp without checking their format.
+This logger writes received data and status messages to C<STDOUT>,
+and log messages to C<STDERR>. The data written to C<STDOUT> can be
+manipulated by the routines defined in the configuration.
+The C<CONFIGFILE> must be a Perl file and can define the following variables.
+The config file must return a true value (typically by ending with C<1;>).
 
-The subroutine stored in C<$HANDLE_STATUS> handles the manipulation of
-status messages from the logger such as "start", "stop", "connect" and "disconnect".
-By default it outputs the messages with a timestamp (i.e. they are mixed
-in with the NMEA stream).
+=over
+
+=item C<$SERIALPORT> - The filename of the serial port device.
+The default is F</dev/ttyUSB0>.
+
+=item C<$BAUDRATE> - The baud rate. The default is 9600.
+
+=item C<$HANDLE_LINE> - This must be a code reference, it is called for
+every line received. The line is passed via C<$_> I<with the end-of-line stripped>,
+and the code can check and manipulate C<$_>.
+The resulting value of C<$_> is written to C<STDOUT>.
+The default code only adds a newline character, everything else received
+on the serial port is passed through unchanged.
+
+=item C<$HANDLE_STATUS> - Like C<$HANDLE_LINE>, but for status messages
+from this script itself ("CONNECT", "DISCONNECT", etc.). If you don't want
+these status messages mixed in with the received data, do C<$_="";>.
+
+=item C<$MAX_ERRORS> - The maximum number of errors that may be encountered
+while reading from the serial port before the script terminates. Once in a
+while there may be intermittent errors on a serial port, and this setting
+allows the script to continue when they happen, while preventing an infinite
+loop of errors if there is a permanent problem with the port.
+The default is 100.
+
+=back
+
+You may send a C<SIGHUP> to this process for it to reload the configuration file
+and reopen the serial port (note that this can sometimes cause a read error);
+for example: C<pkill -HUP -f serlog>.
+The process can be stopped cleanly via a C<SIGTERM> or C<SIGINT> (typically C<Ctrl-C>).
 
 You may need to add the user to the group C<dialout> (in Debian, this
 normally gives full and direct access to serial ports):
@@ -79,74 +110,47 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-# ### Application-Specific User Settings ###
-
-#TODO: move this to CONFIGFILE.pl (and into a hash)
-our $SERIALPORT = '/dev/usb_gps';
-our $BAUDRATE = 4800;
+# ### Default Settings ###
+our $SERIALPORT = '/dev/ttyUSB0';
+our $BAUDRATE = 9600;
+our $HANDLE_LINE = sub { $_.="\n" };
+our $HANDLE_STATUS = sub { $_.="\n" };
 our $MAX_ERRORS = 100;
 
-use Time::HiRes qw/ gettimeofday /;
-# the following variables configure the current $HANDLE_LINE implementation
-my $STRIP_NULS = 1; # strip NULs at beginning and end of lines (seems to happen sometimes)
-my $CHECK_NMEA = 1;
-my $ESCAPE_NONPRINTABLE = 1; # escape all nonprintable and non-ASCII chars
-our $HANDLE_LINE = sub { # code should edit $_; return value ignored
-	$STRIP_NULS and s/^\x00*|\x00*$//g;
-	return unless length $_; # nothing needed
-	my $err;
-	if ($CHECK_NMEA) {
-		if (my ($str,$sum) = /^\$(.+?)(?:\*([A-Fa-f0-9]{2}))?$/) {
-			if ($sum) {
-				my $xor = 0;
-				$xor ^= ord for split //, $str;
-				my $got = sprintf '%02X', $xor;
-				$sum = uc $sum;
-				$sum eq $got or $err = "Checksum calc $got, exp $sum";
-			}
-		}
-		else
-			{ $err = "Invalid format" }
-	}
-	if ($err) {
-		s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
-		warn "Ignoring input ($err): $_\n";
-		undef $_;
-		return;
-	}
-	$ESCAPE_NONPRINTABLE and s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
-	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
-	return;
-};
-our $HANDLE_STATUS = sub { # code should edit $_; return value ignored
-	return unless length $_; # nothing needed
-	unless (/^[A-Za-z0-9_]/) {
-		warn "Ignoring invalid status \"$_\"\n";
-		undef $_;
-		return;
-	}
-	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
-	return;
-};
-
-
+# ### Init Code ###
 use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
+use File::Spec::Functions qw/ file_name_is_absolute /;
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
 sub VERSION_MESSAGE { say {shift} q$serlog.pl v1.00$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-getopts('', \my %opts) or pod2usage;
-pod2usage unless @ARGV==1;
-my $CONFIGFILE = $ARGV[0];
-#TODO: execute $CONFIGFILE
+getopts('Cp:b:', \my %opts) or pod2usage;
+our $NO_CONFIGFILE = !!$opts{C};
+our $OVRD_SERIALPORT = $opts{p};
+our $OVRD_BAUDRATE = $opts{b};
+pod2usage('invalid baud rate')
+	if defined $OVRD_BAUDRATE && $OVRD_BAUDRATE!~/^\d+$/;
+our $CONFIGFILE;
+if ($NO_CONFIGFILE)
+	{ pod2usage if @ARGV }
+else {
+	pod2usage unless @ARGV==1;
+	$CONFIGFILE = $ARGV[0];
+	pod2usage('configuration filename must be absolute')
+		unless file_name_is_absolute($CONFIGFILE);
+}
 
 local $SIG{__WARN__} = sub { warn "[".scalar(gmtime)." UTC] (PID $$) ".shift };
 local $SIG{__DIE__} = sub { die "[".scalar(gmtime)." UTC] (PID $$) FATAL ".shift };
 my $run=1;
+my $reload=0;
 local $SIG{INT} = sub { warn "Caught SIGINT, stopping...\n"; $run=0 };
 local $SIG{TERM} = sub { warn "Caught SIGTERM, stopping...\n"; $run=0 };
+local $SIG{HUP} = sub { warn "Caught SIGHUP, reloading...\n"; $reload=1 };
 local $|=1;
+
+load_config() unless $NO_CONFIGFILE;
 
 # ### Main Loop ###
 use Device::SerialPort 1.04 ();
@@ -160,11 +164,18 @@ my $do_status = sub {
 warn "Entering main loop...\n";
 $do_status->("START");
 MAINLOOP: while($run) {
+	if ($reload) {
+		$do_status->("RELOAD");
+		if ($NO_CONFIGFILE) { warn "Note: No config file to reload\n" }
+		else { load_config() }
+		$reload=0;
+	}
 	if (!-e $SERIALPORT) {
 		$do_status->("DISCONNECT");
 		warn "Warning: $SERIALPORT doesn't exist - unplugged? Waiting...\n";
-		while ($run && !-e $SERIALPORT) { sleep 1 } # wait for it to reappear
+		while ($run && !$reload && !-e $SERIALPORT) { sleep 1 } # wait for it to reappear
 		last MAINLOOP unless $run;
+		next MAINLOOP if $reload;
 		warn "Notice: $SERIALPORT has (re-)appeared, continuing\n";
 		sleep 1; # wait for any init the OS might have to do
 	}
@@ -184,9 +195,10 @@ MAINLOOP: while($run) {
 	$port->read_const_time(10000); # timeout for unfulfilled "read" call
 	$do_status->("CONNECT");
 	my $buf='';
-	READLOOP: while($run) {
+	READLOOP: while($run && !$reload) {
 		my ($incnt, $in) = $port->read(1);
 		last MAINLOOP unless $run;
+		next MAINLOOP if $reload;
 		# handle read failures
 		unless ($incnt && $incnt==1) {
 			sleep 1; # wait for possible unplugging to register in filesystem; also slow down error rate
@@ -202,6 +214,7 @@ MAINLOOP: while($run) {
 		# handle a line
 		if ($in eq "\x0A") {
 			local $_ = $buf;
+			#TODO Later: Handle CR as well?
 			s/\x0D$//; # CRLF -> LF (that means we handle LF and CRLF, but not pure CR)
 			$HANDLE_LINE->(); # feed chomped line through user code
 			print $_ if length $_;
@@ -218,6 +231,18 @@ exit;
 
 
 # ### Subs ###
+
+sub load_config {
+	warn "Loading configuration from $CONFIGFILE...\n";
+	unless (my $rv = do $CONFIGFILE) {
+		die "Error: couldn't parse $CONFIGFILE: $@" if $@;
+		die "Error: couldn't do $CONFIGFILE: $!\n" unless defined $rv;
+		die "Error: couldn't run $CONFIGFILE\n" unless $rv;
+	}
+	$SERIALPORT = $OVRD_SERIALPORT if defined $OVRD_SERIALPORT;
+	$BAUDRATE = $OVRD_BAUDRATE if defined $OVRD_BAUDRATE;
+	return;
+}
 
 sub error {
 	my ($msg) = @_;
