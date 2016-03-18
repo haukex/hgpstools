@@ -82,16 +82,16 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 # ### Application-Specific User Settings ###
 
 #TODO: move this to CONFIGFILE.pl (and into a hash)
-my $SERIALPORT = '/dev/usb_gps';
-my $BAUDRATE = 4800;
-my $MAX_ERRORS = 100;
+our $SERIALPORT = '/dev/usb_gps';
+our $BAUDRATE = 4800;
+our $MAX_ERRORS = 100;
 
 use Time::HiRes qw/ gettimeofday /;
 # the following variables configure the current $HANDLE_LINE implementation
 my $STRIP_NULS = 1; # strip NULs at beginning and end of lines (seems to happen sometimes)
 my $CHECK_NMEA = 1;
 my $ESCAPE_NONPRINTABLE = 1; # escape all nonprintable and non-ASCII chars
-my $HANDLE_LINE = sub { # code should edit $_; return value ignored
+our $HANDLE_LINE = sub { # code should edit $_; return value ignored
 	$STRIP_NULS and s/^\x00*|\x00*$//g;
 	return unless length $_; # nothing needed
 	my $err;
@@ -118,7 +118,7 @@ my $HANDLE_LINE = sub { # code should edit $_; return value ignored
 	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
 	return;
 };
-my $HANDLE_STATUS = sub { # code should edit $_; return value ignored
+our $HANDLE_STATUS = sub { # code should edit $_; return value ignored
 	return unless length $_; # nothing needed
 	unless (/^[A-Za-z0-9_]/) {
 		warn "Ignoring invalid status \"$_\"\n";
