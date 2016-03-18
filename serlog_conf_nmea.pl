@@ -5,7 +5,7 @@ use strict;
 
 This is a configuration file for C<serlog.pl> that handles NMEA data.
 
- serlog.pl /path/to/serlog_conf_gps.pl
+ serlog.pl /path/to/serlog_conf_nmea.pl
 
 =head1 DETAILS
 
