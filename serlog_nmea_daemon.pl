@@ -9,6 +9,9 @@ This script provides a daemon wrapper for C<serlog.pl> with C<serlog_conf_nmea.p
 and can also generate an appropriate init script to install in C</etc/init.d/>.
 
 See also C<serlog_nmea_daemon.pl --help> and the code for details on the configuration.
+This file can be copied and adapted to create other C<serlog.pl>-based daemons.
+
+=head1 DETAILS
 
 To install and run the daemon:
 
@@ -44,8 +47,8 @@ C<logrotate serlog_nmea.logrotate> or set up for daily exection via
 
  sudo ln -s /home/pi/hgpstools/serlog_nmea.logrotate /etc/logrotate.d/serlog_nmea
 
-B<Note> that L<logrotate(8)> will delete old log files set set up in this
-configuration, so by itself it is B<not> a solution for long-term data archival.
+B<Note> that L<logrotate(8)> will B<delete old log files> in this configuration,
+so by itself it is B<not> a solution for long-term data archival.
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
@@ -86,7 +89,7 @@ exit Daemon::Control->new(
 	pid_file     => '/home/pi/serlog/nmea.pid',
 	resource_dir => '/home/pi/serlog/',
 	fork         => 2, # default = 2 = double-fork
-	kill_timeout => 5,
+	kill_timeout => 5, # serlog.pl needs *at least* one second to shut down
 	lsb_start   => '$local_fs $time',
 	lsb_stop    => '$local_fs',
 	lsb_sdesc   => "Serial Logger for NMEA Data",
