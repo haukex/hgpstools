@@ -23,19 +23,30 @@ but should work on other models too.
 		
 	b.	After expanding the partition and rebooting,
 		run an update using `apt-get` or `aptitude`.
+		Also do a run of `sudo rpi-update` to update the firmware.
 		(I also usually install `vim` at this point
 		to make the following steps easier.)
 		
-	c.	Note: In case you get warnings like "perl: warning: Setting locale failed",
-		one solution is to edit the file `/etc/default/locale` to look like this
+	c.	At one point I had trouble using `raspi-config` to set the keyboard layout,
+		you can set it manually by changing the following in `/etc/default/keyboard`
+		(example for German):
+		
+			XKBMODEL="pc105"
+			XKBLAYOUT="de"
+			XKBVARIANT="nodeadkeys"
+			XKBOPTIONS=""
+		
+	d.	Note: In case you get warnings like "perl: warning: Setting locale failed",
+		one solution is to edit the file `/etc/default/locale` to look like the following
 		(of course you're free to use a different locale/language; for lots
-		more information Google the term "/etc/default/locale"):
+		more information Google the term "/etc/default/locale").
+		Another possibility is to just use the `C.UTF-8` locale.
 		
 			LANG=en_US.UTF-8
 			LANGUAGE=en_US:en
 			LC_ALL=en_US.UTF-8
 		
-	d.	Setting up unattended upgrades:
+	e.	Setting up unattended upgrades:
 		`sudo apt-get install unattended-upgrades` and
 		in `/etc/apt/apt.conf.d/50unattended-upgrades`,
 		uncomment one of the lines containing `o=Raspbian`.
@@ -48,7 +59,7 @@ but should work on other models too.
 			APT::Periodic::AutocleanInterval "7";
 			APT::Periodic::Unattended-Upgrade "1";
 		
-	e.	Other configuration files worth taking a look at to see if you need
+	f.	Other configuration files worth taking a look at to see if you need
 		to adjust them for your setup: `/etc/ntp.conf`, `/etc/ssh/sshd_config`
 	
 3.	Install additional packages via `sudo apt-get install ...` or `aptitude`:
@@ -74,7 +85,7 @@ but should work on other models too.
 		`sudo update-rc.d -f gpsd remove` and `sudo service gpsd stop`
 		
 	e.	Optional: Additional useful packages are `screen`, `perl-doc`, `vim`
-	
+		
 	f.	Packages that are already installed in the latest version of Raspbian
 		I used, but may be missing on older versions: `git`
 	
@@ -85,7 +96,22 @@ but should work on other models too.
 	to broadcast its IP address as described in `udplisten.pl` and/or `my_ip.pl`.
 	(When making entries in `crontab`, don't forget to use the correct pathnames.)
 	
-5.	The *most current* information to install the NMEA logging daemon is in the files
+5.	In case you're using a Raspberry Pi 3 with a GPS add-on board
+	that connects directly to the Raspberry Pi's GPIO UART pins,
+	you may have to apply the following workaround.
+	This is because on the Raspberry Pi 3, the Bluetooth Modem uses
+	the RPi's UART, and the UART pins have been remapped.
+	The following workaround disables the connection to the Bluetooth
+	module and applies to Raspbian Jessie >= 2016-03-18.
+	
+	a.	In `/boot/config.txt`, add the line `dtoverlay=pi3-disable-bt`
+		
+	b.	Run `sudo systemctl disable hciuart`
+		
+	c.	If necessary, you'll need to disable the serial console as per your
+		GPS board's instructions. Also make sure to reboot.
+	
+6.	The *most current* information to install the NMEA logging daemon is in the files
 	referenced below! Here is a short summary of the steps needed at the time of writing:
 	
 		# the following is from serlog.pl
