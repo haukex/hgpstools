@@ -34,6 +34,12 @@ for example for [UFW](https://wiki.ubuntu.com/UncomplicatedFirewall):
 
  ufw allow in 12340/udp
 
+B<Note> that the choice of port number above is completely random.
+At the time of writing, this port appears to be unused
+(L<http://www.iana.org/assignments/port-numbers>),
+but if you've got other things on your network that use this port, choose a different one.
+You're also free to, for example, use different ports for different devices.
+
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
 Copyright (c) 2016 Hauke Daempfling (haukex@zero-g.net)

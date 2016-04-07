@@ -9,10 +9,11 @@ Prints a list of this system's IP address(es) with timestamps
 (only active interfaces and excluding loopback).
 If no IP address can be determined, reports the IP 0.0.0.0.
 
- my_ip.pl [-p MESSAGE]
+ my_ip.pl [-s] [-p MESSAGE]
 
-The C<-p> option can be used to specify a message that is output
-before the IP addresses.
+The C<-p> ("prefix") option can be used to specify a message that is output
+before the IP addresses. The C<-s> ("short") option gives a shorter
+one-line output.
 
 =head1 DETAILS
 
@@ -54,22 +55,44 @@ use Pod::Usage 'pod2usage';
 use IO::Interface::Simple ();
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
-sub VERSION_MESSAGE { say {shift} q$my_ip.pl v1.10$; return }
+sub VERSION_MESSAGE { say {shift} q$my_ip.pl v1.20$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-getopts('p:', \my %opts) or pod2usage;
+getopts('p:s', \my %opts) or pod2usage;
+my $PREFIX = $opts{p};
+my $SHORT = $opts{s};
 
-if (defined $opts{p}) {
-	print $opts{p};
-	print "\n" unless $opts{p}=~/\n\z/;
+if (defined $PREFIX) {
+	if ($SHORT) {
+		$PREFIX=~s/\s+$//;
+		print $PREFIX, " ";
+	}
+	else {
+		print $PREFIX;
+		print "\n" unless $PREFIX=~/\n\z/;
+	}
 }
+
+print scalar time if $SHORT;
 
 my $cnt = 0;
 for my $if (IO::Interface::Simple->interfaces) {
 	next if !$if->is_running || $if->is_loopback;
-	say $if->address, "\t", scalar time, "\t", scalar gmtime, " UTC";
+	if ($SHORT) {
+		print " ", $if->address;
+	}
+	else {
+		say $if->address, "\t", scalar time, "\t", scalar gmtime, " UTC";
+	}
 	$cnt++;
 }
 
-say "0.0.0.0", "\t", scalar time, "\t", scalar gmtime, " UTC"
-	unless $cnt;
+unless ($cnt) {
+	if ($SHORT) {
+		print " 0.0.0.0";
+	}
+	else {
+		say "0.0.0.0", "\t", scalar time, "\t", scalar gmtime, " UTC"
+	}
+}
 
+print "\n" if $SHORT;
