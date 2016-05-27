@@ -8,6 +8,7 @@ but its individual parts do work and can hopefully be useful.
 Featuring:
 
 * A general-purpose serial logging daemon with USB hot-plugging support
+* Instructions on how to build a standalone NTP server synchronized to GPS
 * Work is in Progress on an NMEA parser
 * Miscellaneous tools and information on getting things
   running on a [Raspberry Pi](http://www.raspberrypi.org/)
@@ -36,6 +37,13 @@ In general, you can get each tool's documentation via `perldoc <filename>`.
 In a few places, not every configuration option is documented, and
 you may still need to have a look at the code.
 A brief overview of the tools:
+
+*	**`RPi3_Adafruit-GPS_NTP-chrony.md`**  
+	with `gpsd2file.pl`, `gpsd2file_daemon.pl`,
+	`gpsd_jsonp.cgi` and `gpswebmon.html`
+	
+	Instructions and tools to build a standalone GPS-synchronized NTP
+	server with a Raspberry Pi 3, an Adafruit "GPS Hat", and `chrony`.
 
 *	**`my_ip.pl`**
 

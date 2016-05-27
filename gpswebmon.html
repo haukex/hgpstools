@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+	<title>GPS Web Monitor</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="stylesheet" type="text/css"
+		href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.1.1/normalize.min.css" />
+	<style type="text/css">
+<!--/* <![CDATA[ */
+body { margin: 1em; }
+.pre { white-space: pre; font-family: Monospace; }
+.fake-link { color: blue; text-decoration: underline; cursor: pointer; }
+/* ]]> */-->
+	</style>
+	<script
+		src="https://code.jquery.com/jquery-1.12.4.min.js"
+		integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+		crossorigin="anonymous"></script>
+	<script type="text/javascript">
+//<![CDATA[
+var server_address;
+function do_fetch () {
+	if (server_address!="") {
+		$('#status').text("Fetching");
+		$.ajax({
+			url: "https://"+server_address+"/pi/gpsd_jsonp.cgi",
+			dataType: "jsonp",
+			success: function (response) {
+				$('#status').text("Success");
+				$('#raw_gps_data').text(JSON.stringify(response, null, 2));
+			},
+		});
+	}
+	setTimeout(do_fetch, 5000); //TODO Later: make interval settable
+}
+$(document).ready(function() {
+	server_address = window.location.hostname;
+	$('#txt_host').val(server_address);
+	$('#btn_set_ip').click( function () {
+		server_address = $('#txt_host').val().trim();
+	});
+	$('#raw_data_cont').hide();
+	$('#raw_data_show').click(function() {
+		if($('#raw_data_cont:visible').length) {
+			$('#raw_data_cont').hide();
+			$('#raw_data_show').text("Show");
+		}
+		else {
+			$('#raw_data_cont').show();
+			$('#raw_data_show').text("Hide");
+		}
+	});
+	do_fetch();
+});
+//]]>
+	</script>
+</head>
+<body>
+<h1>GPS Web Monitor</h1>
+<h2><i>Prototype</i></h2>
+
+<p>
+RPi Address:
+<input type="text" id="txt_host" />
+<input type="button" id="btn_set_ip" value="Set" />
+</p>
+
+<p>Status: <i id="status">Idle</i></p>
+
+<p>
+Raw data: <span class="fake-link" id="raw_data_show">Show</span>
+<div id="raw_data_cont" style="border: 1px solid black; padding: 0.5em;">
+<div id="raw_gps_data" class="pre"></div>
+<a href="http://www.catb.org/gpsd/gpsd_json.html" target="_blank">gpsd JSON reference</a>
+</div>
+</p>
+
+<h3>Author, Copyright, and License</h3>
+<p>Copyright &copy; 2016 Hauke Daempfling <a href="mailto:haukex@zero-g.net">haukex@zero-g.net</a>
+at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
+Berlin, Germany, <a href="http://www.igb-berlin.de/" target="_blank">http://www.igb-berlin.de/</a></p>
+<p>This project is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>This software is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with this software. If not, see
+<a href="http://www.gnu.org/licenses/" target="_blank">http://www.gnu.org/licenses/</a>.</p>
+
+</body>
+</html>
