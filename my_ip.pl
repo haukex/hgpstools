@@ -55,7 +55,7 @@ use Pod::Usage 'pod2usage';
 use IO::Interface::Simple ();
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
-sub VERSION_MESSAGE { say {shift} q$my_ip.pl v1.20$; return }
+sub VERSION_MESSAGE { say {shift} q$my_ip.pl v1.21$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 getopts('p:s', \my %opts) or pod2usage;
 my $PREFIX = $opts{p};
@@ -76,7 +76,7 @@ print scalar time if $SHORT;
 
 my $cnt = 0;
 for my $if (IO::Interface::Simple->interfaces) {
-	next if !$if->is_running || $if->is_loopback;
+	next if !$if->is_running || $if->is_loopback || !defined($if->address);
 	if ($SHORT) {
 		print " ", $if->address;
 	}
