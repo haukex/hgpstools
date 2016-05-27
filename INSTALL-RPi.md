@@ -20,20 +20,20 @@ and should work on other models too.
 	according to the installation instructions:
 	<https://www.raspberrypi.org/documentation/installation/installing-images/>
 	
--	Boot and configure your RPi
+2.	Boot and configure your RPi
 	(<https://www.raspberrypi.org/documentation/configuration/>)
 	
 	a.	Make sure to correctly configure the network/WiFi, time settings,
 		as well as choosing **a good password for the `pi` user!**
 		If you wish you can also disable booting into the GUI.
 		
-	-	After expanding the partition and rebooting,
+	b.	After expanding the partition and rebooting,
 		run an update using `apt-get` or `aptitude`.
 		Also do a run of `sudo rpi-update` to update the firmware.
 		(I also usually install `vim` at this point
 		to make the following steps easier.)
 		
-	-	At one point I had trouble using `raspi-config` to set the keyboard layout,
+	c.	At one point I had trouble using `raspi-config` to set the keyboard layout,
 		you can set it manually by changing the following in `/etc/default/keyboard`
 		(example for German):
 		
@@ -42,7 +42,7 @@ and should work on other models too.
 			XKBVARIANT="nodeadkeys"
 			XKBOPTIONS=""
 		
-	-	Note: In case you get warnings like "perl: warning: Setting locale failed",
+	d.	Note: In case you get warnings like "perl: warning: Setting locale failed",
 		one solution is to edit the file `/etc/default/locale` to look like the following
 		(of course you're free to use a different locale/language; for lots
 		more information Google the term "/etc/default/locale").
@@ -55,7 +55,7 @@ and should work on other models too.
 		and adding those you want/need (in my case `de_DE.UTF-8` and `en_US.UTF-8`), and
 		choosing the default locale to be `None` or `C.UTF-8`.
 		
-	-	Setting up unattended upgrades:
+	e.	Setting up unattended upgrades:
 		`sudo apt-get install unattended-upgrades` and
 		in `/etc/apt/apt.conf.d/50unattended-upgrades`,
 		uncomment one of the lines containing `o=Raspbian` (I usually choose the `n=jessie` line).
@@ -68,22 +68,22 @@ and should work on other models too.
 			APT::Periodic::AutocleanInterval "7";
 			APT::Periodic::Unattended-Upgrade "1";
 		
-	-	Other configuration files worth taking a look at to see if you need
+	f.	Other configuration files worth taking a look at to see if you need
 		to adjust them for your setup: `/etc/ntp.conf`, `/etc/ssh/sshd_config`
 		(in this one I usually change `PermitRootLogin` to `no`).
 	
--	Install additional packages via `sudo apt-get install ...` or `aptitude`:
+3.	Install additional packages via `sudo apt-get install ...` or `aptitude`:
 	
 	a.	Required: Install the following packages: `libio-interface-perl`, `socat`,
 		`libdaemon-control-perl`, `libdevice-serialport-perl`;
 		for `filter_ts.pl` the additional requirements are:
 		`libdatetime-perl`, `libdatetime-format-strptime-perl`
 		
-	-	Recommended: Install the package `ufw`, then do `sudo ufw allow OpenSSH`
+	b.	Recommended: Install the package `ufw`, then do `sudo ufw allow OpenSSH`
 		and `sudo ufw enable` (status can be checked via
 		`sudo ufw status verbose` and `sudo ufw show listening`)
 		
-	-	Recommended: Install `alpine` and `postfix`, first configure the
+	c.	Recommended: Install `alpine` and `postfix`, first configure the
 		latter for "Local only", later you can reconfigure it via
 		`sudo dpkg-reconfigure postfix`. If you want `root`'s mail to go to
 		the `pi` user, add the line `root: pi` to `/etc/aliases` and then
@@ -91,19 +91,19 @@ and should work on other models too.
 		*Note* that when setting a mail domain, it usually works best to use
 		a fake subdomain of a domain name you own or can operate underneath.
 		
-	-	Optional: `gpsd`, but to avoid conflicts with our logger do
+	d.	Optional: `gpsd`, but to avoid conflicts with our logger do
 		`sudo update-rc.d -f gpsd remove` and `sudo service gpsd stop`
 		
-	-	Optional: Additional useful packages are `screen`, `perl-doc`, `vim`,
+	e.	Optional: Additional useful packages are `screen`, `perl-doc`, `vim`,
 		`lsof`
 		
-	-	Packages that are already installed in the latest version of Raspbian
+	f.	Packages that are already installed in the latest version of Raspbian
 		I used, but may be missing on older versions: `git`
 	
--	In a suitable directory (like `/home/pi`) do:
+4.	In a suitable directory (like `/home/pi`) do:
 	`git clone --recursive https://bitbucket.org/haukex/hgpstools.git`
 	
--	Unless you're using a fixed IP address, you can set up a way for the RPi
+5.	Unless you're using a fixed IP address, you can set up a way for the RPi
 	to broadcast its IP address as described in `udplisten.pl` and/or `my_ip.pl`.
 	(When making entries in `crontab`, don't forget to use the correct pathnames.)
 	Here's an example `crontab` entry, then you can then listen via
@@ -111,7 +111,7 @@ and should work on other models too.
 	
 		* * * * *  /home/pi/hgpstools/my_ip.pl -sp `hostname` | socat - UDP-DATAGRAM:255.255.255.255:12340,broadcast
 	
--	In case you're using a Raspberry Pi 3 with a GPS add-on board
+6.	In case you're using a Raspberry Pi 3 with a GPS add-on board
 	that connects directly to the Raspberry Pi's GPIO UART pins,
 	you may have to apply the following workaround.
 	This is because on the Raspberry Pi 3, the Bluetooth Modem uses
@@ -121,18 +121,18 @@ and should work on other models too.
 	
 	a.	In `/boot/config.txt`, add the line `dtoverlay=pi3-disable-bt`
 		
-	-	For newer versions of the firmware, approx. after March 2016, see
+	b.	For newer versions of the firmware, approx. after March 2016, see
 		<https://github.com/raspberrypi/firmware/issues/553#issuecomment-199486644>,
 		set `enable_uart=1` in `/boot/config.txt`. Note it does not seem to
 		be neccessary to set `force_turbo` as suggested in that comment
 		(run `vcgencmd get_config int` and check that `core_freq=400`).
 		
-	-	Run `sudo systemctl disable hciuart`
+	c.	Run `sudo systemctl disable hciuart`
 		
-	-	If necessary, you'll need to disable the serial console as per your
+	d.	If necessary, you'll need to disable the serial console as per your
 		GPS board's instructions. Also make sure to reboot.
 	
--	The *most current* information to install the NMEA logging daemon is in the files
+7.	The *most current* information to install the NMEA logging daemon is in the files
 	referenced below! Here is a short summary of the steps needed at the time of writing:
 	
 		# the following is from serlog.pl

@@ -19,7 +19,7 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 		You can skip the final steps for setting up the NMEA logging daemon,
 		also you don't need to disable `gpsd` as mentioned there.
 		
-	-	We need the latest version of `gpsd` and related packages: in 3.11
+	b.	We need the latest version of `gpsd` and related packages: in 3.11
 		the PPS we use does not yet seem to work correctly, 3.15 works better,
 		there is just a small bug that we have a workaround for below.
 		At the time of writing, those are only available in Raspbian's
@@ -42,7 +42,7 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 		We will install specific packages from `testing` later.
 		
 	
--	Initial **GPS Module** / Serial Port Setup
+2.	Initial **GPS Module** / Serial Port Setup
 	
 	a.	Make sure the serial console is disabled:
 		`sudo vi /boot/cmdline.txt` and make sure there are no `console=`
@@ -54,37 +54,37 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 			sudo systemctl stop serial-getty@ttyS0.service
 			sudo systemctl disable serial-getty@ttyS0.service
 		
-	-	Check that you're getting NMEA data on the serial port:
+	b.	Check that you're getting NMEA data on the serial port:
 		
 			stty -F /dev/ttyAMA0 raw 9600 cs8 clocal -cstopb
 			cat /dev/ttyAMA0
 	
--	**Set Up PPS**
+3.	**Set Up PPS**
 	
 	a.	`sudo apt-get install -t testing pps-tools`
 		(I don't think `testing` is needed here but it also doesn't hurt)
 		
-	-	Add the line `dtoverlay=pps-gpio,gpiopin=4` to `/boot/config.txt`
+	b.	Add the line `dtoverlay=pps-gpio,gpiopin=4` to `/boot/config.txt`
 		(this pin number is specific to the Adafruit GPS Hat)
 		
-	-	Add the line `pps-gpio` to `/etc/modules`
+	c.	Add the line `pps-gpio` to `/etc/modules`
 		
-	-	Reboot, then `lsmod | grep pps` (look for `pps_gpio` and `pps_core`),
+	d.	Reboot, then `lsmod | grep pps` (look for `pps_gpio` and `pps_core`),
 		and check `dmesg | grep pps`. Also try `sudo ppstest /dev/pps0`.
 		
-	-	`echo 'SUBSYSTEM=="pps" GROUP="dialout"' | sudo tee /etc/udev/rules.d/87-gpspps.rules`
+	e.	`echo 'SUBSYSTEM=="pps" GROUP="dialout"' | sudo tee /etc/udev/rules.d/87-gpspps.rules`
 	
--	**Set Up `gpsd`** (<http://catb.org/gpsd/gpsd-time-service-howto.html>)
+4.	**Set Up `gpsd`** (<http://catb.org/gpsd/gpsd-time-service-howto.html>)
 	
 	a.	`sudo apt-get install -t testing gpsd gpsd-clients`
 		
-	-	For testing, `sudo service gpsd stop`, then
+	b.	For testing, `sudo service gpsd stop`, then
 		`sudo gpsd -ND3 -n -F /var/run/gpsd.sock /dev/pps0 /dev/ttyAMA0`,
 		then in another terminal do `gpsmon`.
 		When the module has a fix, there should be lines saying "PPS
 		showing up in the messages.
 		
-	-	Apparently, at the time of writing, the messages
+	c.	Apparently, at the time of writing, the messages
 		`gpsd:ERROR: KPPS:/dev/ttyAMA0 kernel PPS failed Connection timed out`
 		are actually not an error:
 		<https://lists.gnu.org/archive/html/gpsd-users/2015-08/msg00021.html>
@@ -94,7 +94,7 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 		and add `:msg,contains,"ttyAMA0 kernel PPS failed Connection timed out" ~`,
 		then `sudo service rsyslog restart`
 		
-	-	`/etc/default/gpsd`:
+	d.	`/etc/default/gpsd`:
 		
 			START_DAEMON="true"
 			USBAUTO="false"
@@ -102,14 +102,14 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 			GPSD_SOCKET=/var/run/gpsd.sock
 			GPSD_OPTIONS="-n"
 		
-	-	Reboot, and once again test with `gpsmon`.
+	e.	Reboot, and once again test with `gpsmon`.
 	
--	**Set Up `chrony`** (<http://chrony.tuxfamily.org/>)
+5.	**Set Up `chrony`** (<http://chrony.tuxfamily.org/>)
 	
 	a.	`sudo apt-get install -t testing chrony`
 		This should automatically uninstall `ntp`.
 		
-	-	Make your `/etc/chrony/chrony.conf` look like the following,
+	b.	Make your `/etc/chrony/chrony.conf` look like the following,
 		which has all the comments stripped (this is not required).
 		Many of these values are left at the defaults, but the
 		`refclock` lines and the `allow` line(s) are important!
@@ -136,10 +136,10 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 		recommendations gathered from various places,
 		and they could probably use some tweaking.)
 		
-	-	`chronyc sourcestats`, and `watch chronyc sources`,
+	c.	`chronyc sourcestats`, and `watch chronyc sources`,
 		if PPS is working there should be a `*` next to "PPS1" instead of a "?".
 		
-	-	Since the RPi might be powered down unexpectedly, we get `chronyd`
+	d.	Since the RPi might be powered down unexpectedly, we get `chronyd`
 		to regularly write data on the clocks by setting up the following
 		in `root`'s `crontab`:
 		
@@ -150,19 +150,19 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 		written, but issuing the `writertc` command doesn't hurt, and
 		it's better to include it in case the config is changed later.)
 		
-	-	`sudo ufw allow ntp/udp`
+	e.	`sudo ufw allow ntp/udp`
 	
--	**Serve Clients with NTP**
+6.	**Serve Clients with NTP**
 	
 	These instructions describe what you can do on *other* machines
 	to synchronize to your newly set up NTP server. In the following
 	examples, "`ADDRESS`" is your Raspberry Pi NTP server's address.
 	
-	-	The simplest way to query your server is `ntpdate -q ADDRESS`.
+	a.	The simplest way to query your server is `ntpdate -q ADDRESS`.
 		This just queries the time, to set the local clock, do
 		`sudo ntpdate -u ADDRESS`.
 		
-	-	To configure `ntp`, edit `/etc/ntp.conf` and
+	b.	To configure `ntp`, edit `/etc/ntp.conf` and
 		add a line `server ADDRESS`. You should then reload `ntpd` -
 		note that if you also have `dhcpcd` running, then apparently
 		sometimes the full sequence of commands needed to reload the
@@ -172,7 +172,7 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 		(Note: The *actual* `ntp.conf` used by the server will be at
 		`/var/lib/ntp/ntp.conf.dhcp`.)
 		
-	-	If you want your NTP server to be the only one used by the client,
+	c.	If you want your NTP server to be the only one used by the client,
 		then you will need to comment out all the `server` and `pool`
 		configuration lines in `/etc/ntp.conf`.
 		
@@ -182,23 +182,23 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 		example is that in `/etc/dhcpcd.conf`, you can comment out the
 		setting `option ntp_servers`.
 		
-	-	To check whether `ntp` is functioning correctly, run `ntpq -p`;
+	d.	To check whether `ntp` is functioning correctly, run `ntpq -p`;
 		to monitor it, use `watch ntpq -p`. Your NTP server should be listed
 		there, and once the NTP client starts using it as a clock source
 		(this can take a few minutes), there should be an asterisk (`*`)
 		to the left of its name.
 		
-	-	You can also use the command `ntpstat` to get a brief report.
+	e.	You can also use the command `ntpstat` to get a brief report.
 		(`sudo apt-get install ntpstat`)
 	
--	**Web Interface**
+7.	**Web Interface**
 	
 	a.	Setting up `gpsd2file.pl` as daemon:
 		`sudo apt-get install lighttpd libjson-maybexs-perl`, then
 		follow the steps in `gpsd2file_daemon.pl`
 		(read via `perldoc gpsd2file_daemon.pl`).
 		
-	-	Set up `lighttpd`:
+	b.	Set up `lighttpd`:
 		
 			sudo ufw allow 'WWW Secure'
 			sudo apt-get install lighttpd lighttpd-doc apache2-utils
@@ -262,7 +262,7 @@ Last tested May 2016 on Raspibian jessie 2016-05-10.
 			ln -s /var/run/gpsd2file/gpsd.json /var/www/html/pi/gpsd.json
 			ln -s /home/pi/hgpstools/gpsd_jsonp.cgi /var/www/html/pi/gpsd_jsonp.cgi
 		
-	-	Now you can use `gpswebmon.html` to monitor the data. Either simply
+	c.	Now you can use `gpswebmon.html` to monitor the data. Either simply
 		open the HTML file in a browser, enter the Raspberry Pi's IP address / hostname,
 		and click "Set", or copy `gpswebmon.html` into `/var/www/html/pi/` and
 		access it over the web at `https://RPI_ADDRESS/pi/gpswebmon.html`.
