@@ -4,7 +4,8 @@ Installing the GPS Tools on a Raspberry Pi
 
 *by Hauke Daempfling <haukex@zero-g.net>
 at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
-Berlin, Germany, <http://www.igb-berlin.de/>*
+Berlin, Germany, <http://www.igb-berlin.de/>
+(legal information below)*
 
 RPi Basic Installation and Serial Logging Daemon and Utilities
 --------------------------------------------------------------
@@ -19,20 +20,20 @@ and should work on other models too.
 	according to the installation instructions:
 	<https://www.raspberrypi.org/documentation/installation/installing-images/>
 	
-2.	Boot and configure your RPi
+-	Boot and configure your RPi
 	(<https://www.raspberrypi.org/documentation/configuration/>)
 	
 	a.	Make sure to correctly configure the network/WiFi, time settings,
 		as well as choosing **a good password for the `pi` user!**
 		If you wish you can also disable booting into the GUI.
 		
-	b.	After expanding the partition and rebooting,
+	-	After expanding the partition and rebooting,
 		run an update using `apt-get` or `aptitude`.
 		Also do a run of `sudo rpi-update` to update the firmware.
 		(I also usually install `vim` at this point
 		to make the following steps easier.)
 		
-	c.	At one point I had trouble using `raspi-config` to set the keyboard layout,
+	-	At one point I had trouble using `raspi-config` to set the keyboard layout,
 		you can set it manually by changing the following in `/etc/default/keyboard`
 		(example for German):
 		
@@ -41,7 +42,7 @@ and should work on other models too.
 			XKBVARIANT="nodeadkeys"
 			XKBOPTIONS=""
 		
-	d.	Note: In case you get warnings like "perl: warning: Setting locale failed",
+	-	Note: In case you get warnings like "perl: warning: Setting locale failed",
 		one solution is to edit the file `/etc/default/locale` to look like the following
 		(of course you're free to use a different locale/language; for lots
 		more information Google the term "/etc/default/locale").
@@ -54,7 +55,7 @@ and should work on other models too.
 		and adding those you want/need (in my case `de_DE.UTF-8` and `en_US.UTF-8`), and
 		choosing the default locale to be `None` or `C.UTF-8`.
 		
-	e.	Setting up unattended upgrades:
+	-	Setting up unattended upgrades:
 		`sudo apt-get install unattended-upgrades` and
 		in `/etc/apt/apt.conf.d/50unattended-upgrades`,
 		uncomment one of the lines containing `o=Raspbian` (I usually choose the `n=jessie` line).
@@ -67,22 +68,22 @@ and should work on other models too.
 			APT::Periodic::AutocleanInterval "7";
 			APT::Periodic::Unattended-Upgrade "1";
 		
-	f.	Other configuration files worth taking a look at to see if you need
+	-	Other configuration files worth taking a look at to see if you need
 		to adjust them for your setup: `/etc/ntp.conf`, `/etc/ssh/sshd_config`
 		(in this one I usually change `PermitRootLogin` to `no`).
 	
-3.	Install additional packages via `sudo apt-get install ...` or `aptitude`:
+-	Install additional packages via `sudo apt-get install ...` or `aptitude`:
 	
 	a.	Required: Install the following packages: `libio-interface-perl`, `socat`,
 		`libdaemon-control-perl`, `libdevice-serialport-perl`;
 		for `filter_ts.pl` the additional requirements are:
 		`libdatetime-perl`, `libdatetime-format-strptime-perl`
 		
-	b.	Recommended: Install the package `ufw`, then do `sudo ufw allow OpenSSH`
+	-	Recommended: Install the package `ufw`, then do `sudo ufw allow OpenSSH`
 		and `sudo ufw enable` (status can be checked via
 		`sudo ufw status verbose` and `sudo ufw show listening`)
 		
-	c.	Recommended: Install `alpine` and `postfix`, first configure the
+	-	Recommended: Install `alpine` and `postfix`, first configure the
 		latter for "Local only", later you can reconfigure it via
 		`sudo dpkg-reconfigure postfix`. If you want `root`'s mail to go to
 		the `pi` user, add the line `root: pi` to `/etc/aliases` and then
@@ -90,19 +91,19 @@ and should work on other models too.
 		*Note* that when setting a mail domain, it usually works best to use
 		a fake subdomain of a domain name you own or can operate underneath.
 		
-	d.	Optional: `gpsd`, but to avoid conflicts with our logger do
+	-	Optional: `gpsd`, but to avoid conflicts with our logger do
 		`sudo update-rc.d -f gpsd remove` and `sudo service gpsd stop`
 		
-	e.	Optional: Additional useful packages are `screen`, `perl-doc`, `vim`,
+	-	Optional: Additional useful packages are `screen`, `perl-doc`, `vim`,
 		`lsof`
 		
-	f.	Packages that are already installed in the latest version of Raspbian
+	-	Packages that are already installed in the latest version of Raspbian
 		I used, but may be missing on older versions: `git`
 	
-3.	In a suitable directory (like `/home/pi`) do:
+-	In a suitable directory (like `/home/pi`) do:
 	`git clone --recursive https://bitbucket.org/haukex/hgpstools.git`
 	
-4.	Unless you're using a fixed IP address, you can set up a way for the RPi
+-	Unless you're using a fixed IP address, you can set up a way for the RPi
 	to broadcast its IP address as described in `udplisten.pl` and/or `my_ip.pl`.
 	(When making entries in `crontab`, don't forget to use the correct pathnames.)
 	Here's an example `crontab` entry, then you can then listen via
@@ -110,7 +111,7 @@ and should work on other models too.
 	
 		* * * * *  /home/pi/hgpstools/my_ip.pl -sp `hostname` | socat - UDP-DATAGRAM:255.255.255.255:12340,broadcast
 	
-5.	In case you're using a Raspberry Pi 3 with a GPS add-on board
+-	In case you're using a Raspberry Pi 3 with a GPS add-on board
 	that connects directly to the Raspberry Pi's GPIO UART pins,
 	you may have to apply the following workaround.
 	This is because on the Raspberry Pi 3, the Bluetooth Modem uses
@@ -131,7 +132,7 @@ and should work on other models too.
 	-	If necessary, you'll need to disable the serial console as per your
 		GPS board's instructions. Also make sure to reboot.
 	
-6.	The *most current* information to install the NMEA logging daemon is in the files
+-	The *most current* information to install the NMEA logging daemon is in the files
 	referenced below! Here is a short summary of the steps needed at the time of writing:
 	
 		# the following is from serlog.pl

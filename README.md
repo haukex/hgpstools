@@ -2,6 +2,11 @@
 GPS Tools
 =========
 
+*by Hauke Daempfling <haukex@zero-g.net>
+at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
+Berlin, Germany, <http://www.igb-berlin.de/>
+(legal information below)*
+
 This is a collection of various tools for __logging and parsing GPS NMEA data__.
 It is by no means a complete application,
 but its individual parts do work and can hopefully be useful.
@@ -9,9 +14,9 @@ Featuring:
 
 * A general-purpose serial logging daemon with USB hot-plugging support
 * Instructions on how to build a standalone NTP server synchronized to GPS
-* Work is in Progress on an NMEA parser
 * Miscellaneous tools and information on getting things
   running on a [Raspberry Pi](http://www.raspberrypi.org/)
+* (Work is in progress on an NMEA parser)
 
 The scripts are written in [Perl](http://www.perl.org/)
 (at least v5.10 but a current version is *strongly* recommended!)
@@ -38,30 +43,36 @@ In a few places, not every configuration option is documented, and
 you may still need to have a look at the code.
 A brief overview of the tools:
 
+*	**`INSTALL-RPi.md`**
+	
+	Instructions on how to set up the serial logging daemon (mentioned below)
+	on a Raspberry Pi, including general-purpose instructions on doing the
+	initial setup of a Raspberry Pi.
+	
 *	**`RPi3_Adafruit-GPS_NTP-chrony.md`**  
 	with `gpsd2file.pl`, `gpsd2file_daemon.pl`,
 	`gpsd_jsonp.cgi` and `gpswebmon.html`
 	
 	Instructions and tools to build a standalone GPS-synchronized NTP
 	server with a Raspberry Pi 3, an Adafruit "GPS Hat", and `chrony`.
-
-*	**`my_ip.pl`**
-
-	Report the computer's IP address(es).
-
-*	**`udplisten.pl`**
-
-	Listen for a specific UDP message and report the sender's IP address.
-
+	
 *	**`serlog.pl`**
-
+	
 	A generic serial port logger with support for hot-plugging USB/RS232 adapters.
 	In combination with `serlog_conf_nmea.pl`, it processes NMEA data,
 	and `serlog_nmea_daemon.pl` turns it into a daemon.
 	These two files can be copied and adapted to log other kinds of data.
-
+	
+*	**`my_ip.pl`**
+	
+	Report the computer's IP address(es).
+	
+*	**`udplisten.pl`**
+	
+	Listen for a specific UDP message and report the sender's IP address.
+	
 *	**`filter_ts.pl`**
-
+	
 	Converts timestamps embedded in NMEA log files into fake NMEA records.
 
 
