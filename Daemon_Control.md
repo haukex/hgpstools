@@ -2,6 +2,11 @@
 Scripts using Daemon::Control
 =============================
 
+*by Hauke Daempfling <haukex@zero-g.net>
+at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
+Berlin, Germany, <http://www.igb-berlin.de/>
+(legal information below)*
+
 Several scripts in this project use the Perl module `Daemon::Control`, this
 is some general information about how to use them.
 
