@@ -5,27 +5,9 @@ use 5.010; no feature 'switch';
 
 =head1 SYNOPSIS
 
-This script provides a daemon wrapper for C<gpsd2file.pl>
-and can also generate an appropriate init script to install in C</etc/init.d/>.
-
-=head1 DETAILS
-
-See also C<gpsd2file_daemon.pl --help> and the code for details on the configuration.
-
-To install and run the daemon:
-
- ./gpsd2file_daemon.pl get_init_file | sudo tee /etc/init.d/gpsd2file
- sudo chmod -c 755 /etc/init.d/gpsd2file
- sudo update-rc.d gpsd2file defaults
- sudo service gpsd2file start
-
-To stop and remove the daemon:
-
- sudo service gpsd2file stop
- sudo update-rc.d -f gpsd2file remove
- sudo rm /etc/init.d/gpsd2file
-
-For more information, see C<serlog_nmea_daemon.pl>, which is a similar script.
+This script provides a daemon wrapper for C<gpsd2file.pl>.
+The daemon is named C<gpsd2file>.
+Please see F<Daemon_Control.md> for usage information!
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 

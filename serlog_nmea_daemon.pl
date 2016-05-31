@@ -5,35 +5,13 @@ use 5.010; no feature 'switch';
 
 =head1 SYNOPSIS
 
-This script provides a daemon wrapper for C<serlog.pl> with C<serlog_conf_nmea.pl>
-and can also generate an appropriate init script to install in C</etc/init.d/>.
-
-See also C<serlog_nmea_daemon.pl --help> and the code for details on the configuration.
-This file can be copied and adapted to create other C<serlog.pl>-based daemons.
+This script provides a daemon wrapper for C<serlog.pl> with C<serlog_conf_nmea.pl>.
+The daemon is named C<serlog_nmea>.
+Please see F<Daemon_Control.md> for usage information!
 
 =head1 DETAILS
 
-To install and run the daemon:
-
- serlog_nmea_daemon.pl get_init_file | sudo tee /etc/init.d/serlog_nmea
- sudo chmod 755 /etc/init.d/serlog_nmea
- sudo update-rc.d serlog_nmea defaults
- sudo service serlog_nmea start
-
-To stop and remove the daemon:
-
- sudo service serlog_nmea stop
- sudo update-rc.d -f serlog_nmea remove
- sudo rm /etc/init.d/serlog_nmea
-
-Additional useful commands:
-
- /etc/init.d/serlog_nmea status    # current status
- sudo service serlog_nmea status   # check the service status
- sudo service serlog_nmea reload   # reload the config file
-
-For even more information, see L<Daemon::Control>,
-L<https://wiki.debian.org/LSBInitScripts> and L<insserv(8)>.
+This file can be copied and adapted to create other C<serlog.pl>-based daemons.
 
 I<Note:> At the moment, L<Daemon::Control> does not support setting
 multiple group IDs. As a workaround, in order to access the serial port,
