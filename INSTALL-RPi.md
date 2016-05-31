@@ -13,7 +13,7 @@ RPi Basic Installation and Serial Logging Daemon and Utilities
 These instructions assume you have some basic knowledge of using
 a Raspberry Pi and Raspbian / Debian.
 Tested March 2016 on a Raspberry Pi 1 Model B with Raspbian 2016-02-26,
-May 2016 on a Raspberry Pi 3 with Raspibian jessie 2016-05-10,
+May 2016 on a Raspberry Pi 3 with Raspbian jessie 2016-05-10,
 and should work on other models too.
 
 1.	Download and install the latest Raspbian image onto an SD card

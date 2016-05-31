@@ -7,7 +7,7 @@ at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
 Berlin, Germany, <http://www.igb-berlin.de/>
 (legal information below)*
 
-Last tested May 2016 on Raspibian jessie 2016-05-10.
+Last tested May 2016 on Raspbian jessie 2016-05-10.
 
 1.	**Install Raspbian Jessie** >= 2016-03-18 on the Raspberry Pi 3
 as per the instructions in `INSTALL-RPi.md` from:
