@@ -27,7 +27,8 @@ function do_fetch () {
 	if (server_address!="") {
 		$('#status').text("Fetching");
 		$.ajax({
-			url: "https://"+server_address+"/pi/gpsd_jsonp.cgi",
+			url: "https://"+server_address+"/pi/hgps/jsonp.cgi",
+			data: { "file": "gpsd.json" },
 			dataType: "jsonp",
 			success: function (response) {
 				$('#status').text("Success");

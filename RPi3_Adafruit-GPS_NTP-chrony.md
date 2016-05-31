@@ -259,7 +259,7 @@ as per the instructions in `INSTALL-RPi.md` from:
 	Serving `gpsd` data:
 	
 		ln -s /var/run/gpsd2file/gpsd.json /var/www/html/pi/gpsd.json
-		ln -s /home/pi/hgpstools/gpsd_jsonp.cgi /var/www/html/pi/gpsd_jsonp.cgi
+		ln -s /home/pi/hgpstools/rpiweb/ /var/www/html/pi/hgps
 	
 	c.	Now you can use `gpswebmon.html` to monitor the data. Either simply
 	open the HTML file in a browser, enter the Raspberry Pi's IP address / hostname,

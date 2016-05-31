@@ -5,6 +5,8 @@ use strict;
 =head1 SYNOPSIS
 
 Serves a JSON file via JSONP with a jQuery compatible "callback" parameter.
+The filename must be passed in the "file" parameter
+and the list of allowed files is stored in this script.
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
@@ -29,17 +31,21 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 use CGI qw/header param/;
 
-# filename set in gpsd2file_daemon.pl
-my $JSONFILE = '/var/run/gpsd2file/gpsd.json';
+my %ALLOWED_FILES = (
+		# filename set in gpsd2file_daemon.pl
+		'gpsd.json' => '/var/run/gpsd2file/gpsd.json',
+	);
 
-my $cb = param('callback') || "callback";
+my $file = length param('file') ? param('file') : '';
+my $cb = length param('callback') ? param('callback') : 'callback';
 $cb=~s/[^\w]//g; # sanitize
 
 print header('application/javascript');
 print "$cb(";
-if (open my $fh, '<', $JSONFILE) {
+if (exists $ALLOWED_FILES{$file}
+	and open my $fh, '<', $ALLOWED_FILES{$file} ) {
 	print while <$fh>;
 	close $fh;
 }
-print ");";
+print ");\n";
 
