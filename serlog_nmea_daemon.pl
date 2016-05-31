@@ -60,7 +60,7 @@ exit Daemon::Control->new(
 	user         => 'pi',
 	group        => 'dialout',
 	umask        => oct('0027'),
-	help         => "Please run `perldoc $0` for help.\n",
+	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	# note that since we use the -o option above, the stdout_file *should* remain empty
 	stdout_file  => '/home/pi/serlog/nmea_out.txt',
 	stderr_file  => '/home/pi/serlog/nmea_err.txt',

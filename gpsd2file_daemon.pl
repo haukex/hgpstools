@@ -39,7 +39,7 @@ exit Daemon::Control->new(
 	user         => 'pi',
 	group        => 'pi',
 	umask        => oct('0022'),
-	help         => "Please run `perldoc $0` for help.\n",
+	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	resource_dir => '/var/run/gpsd2file/',
 	pid_file     => '/var/run/gpsd2file/gpsd2file.pid',
 	fork         => 2, # default = 2 = double-fork
