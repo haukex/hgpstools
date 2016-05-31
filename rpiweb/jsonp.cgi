@@ -32,8 +32,8 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 use CGI qw/header param/;
 
 my %ALLOWED_FILES = (
-		# filename set in gpsd2file_daemon.pl
-		'gpsd.json' => '/var/run/gpsd2file/gpsd.json',
+		'gpsd.json' => '/var/run/gpsd2file/gpsd.json', # from gpsd2file_daemon.pl
+		'wifistat.json' => '/var/run/wifistat/wifistat.json', # from wifistat_daemon.pl
 	);
 
 my $file = length param('file') ? param('file') : '';

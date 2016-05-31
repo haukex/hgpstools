@@ -193,7 +193,7 @@ as per the instructions in `INSTALL-RPi.md` from:
 7.	**Web Interface**
 	
 	a.	Setting up `gpsd2file.pl` as daemon:
-	`sudo apt-get install lighttpd libjson-maybexs-perl`, then
+	`sudo apt-get install lighttpd libjson-maybexs-perl libcapture-tiny-perl`, then
 	follow the steps in `gpsd2file_daemon.pl`
 	(read via `perldoc gpsd2file_daemon.pl`).
 	
