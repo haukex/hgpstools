@@ -145,6 +145,17 @@ Note `sudo service` doesn't seem to have any effect (??); one way
 to kill the daemon is `sudo pkill --pidfile /run/hostapd.pid`,
 but as noted above the most reliable way is to reboot.
 
+### Additional Notes ###
+
+**Configuring a second RPi to connect to your wireless network**
+
+Edit `/etc/wpa_supplicant/wpa_supplicant.conf` and add:
+
+	network={
+		ssid="SSID"
+		psk="Passphrase"
+	}
+
 
 Author, Copyright, and License
 ------------------------------

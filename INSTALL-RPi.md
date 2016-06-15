@@ -91,13 +91,20 @@ according to the installation instructions:
 	*Note* that when setting a mail domain, it usually works best to use
 	a fake subdomain of a domain name you own or can operate underneath.
 	
-	d.	Optional: `gpsd`, but to avoid conflicts with our logger do
+	d.	Optional: To be able to send out e-mail to the Internet, do
+	`sudo dpkg-reconfigure postfix` and select "Internet Site". The rest of
+	the configuration can stay the same; now the mail system will attempt
+	to send non-local e-mails via the Internet. You can also install the
+	package `bsd-mailx` and then send a test mail via:
+	`echo "This is a mailx test" | mailx -s "mailx test" recipient@somewhere.com`
+	
+	e.	Optional: `gpsd`, but to avoid conflicts with our logger do
 	`sudo update-rc.d -f gpsd remove` and `sudo service gpsd stop`
 	
-	e.	Optional: Additional useful packages are `screen`, `perl-doc`, `vim`,
+	f.	Optional: Additional useful packages are `screen`, `perl-doc`, `vim`,
 	`lsof`
 	
-	f.	Packages that are already installed in the latest version of Raspbian
+	g.	Packages that are already installed in the latest version of Raspbian
 	I used, but may be missing on older versions: `git`
 	
 4.	In a suitable directory (like `/home/pi`) do:
@@ -106,11 +113,26 @@ according to the installation instructions:
 5.	Unless you're using a fixed IP address, you can set up a way for the RPi
 to broadcast its IP address as described in `udplisten.pl` and/or `my_ip.pl`.
 (When making entries in `crontab`, don't forget to use the correct pathnames.)
-Here's an example `crontab` entry, then you can then listen via
-`socat -u udp-recv:12340 -`
-
+	
+	a.	Here's an example `crontab` entry, then you can then listen via
+	`socat -u udp-recv:12340 -`
+	
 		* * * * *  /home/pi/hgpstools/my_ip.pl -sp `hostname` | socat - UDP-DATAGRAM:255.255.255.255:12340,broadcast
-
+	
+	b.	You may then want to **adjust your `rsyslog`** configuration
+	to prevent your log from filling up with the messages from `cron`
+	once a minute caused by the above command. Do this by editing
+	`/etc/rsyslog.conf` and finding the line which defines
+	`/var/log/syslog` (on some systems it may be in one of the files in
+	`/etc/rsyslog.d/`). On my RPi the line initially looked like this:
+	`*.*;auth,authpriv.none  -/var/log/syslog`, and I edited it to look
+	like this: `*.*;cron,auth,authpriv.none  -/var/log/syslog`
+	
+	c.	If you find `/var/log/syslog` is filling up with messages like
+	"rsyslogd-2007: action 'action 18' suspended", this can be prevented
+	by commenting out the entry in the `rsyslog` configuration that
+	writes to `/dev/xconsole`.
+	
 6.	In case you're using a Raspberry Pi 3 with a GPS add-on board
 that connects directly to the Raspberry Pi's GPIO UART pins,
 you may have to apply the following workaround.
