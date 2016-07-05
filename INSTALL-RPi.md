@@ -170,7 +170,7 @@ referenced below! Here is a short summary of the steps needed at the time of wri
 Other Notes
 -----------
 
-- **Static IP** on Raspbian Jessie
+-	**Static IP** on Raspbian Jessie
 	
 	-	Add the following lines to `/etc/dhcpcd.conf` and set the values as needed.
 	Add an additional set of these lines for the interface `wlan0` if desired.
@@ -180,6 +180,15 @@ Other Notes
 			static routers=192.168.0.1
 			static domain_name_servers=192.168.0.1
 	
+-	I've had the problem on some RPis that WLAN loses connectivity after
+	a while. Here's a hack you can place in your crontab to check if
+	`wlan0` network / internet connectivity is down and then restart the
+	`wlan0` interface. Adjust the target address and the interval as is
+	appropriate for your situation.
+	
+		SHELL=/bin/bash
+		  1 */2  *   *   *   if ! ping -c4 -w8 -Iwlan0 www.google.com >/dev/null; then echo "Restarting wlan0"; sudo ifdown wlan0; sudo ifup wlan0; fi
+	 
 
 
 Author, Copyright, and License
