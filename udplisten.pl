@@ -5,13 +5,17 @@ use 5.010; no feature 'switch';
 
 =head1 SYNOPSIS
 
-Waits for a specific message on a UDP port (see variable C<$EXPECT> in the code),
-and when the message is received it outputs the IP address from which it was received.
+Waits for message(s) on a UDP port and when a message is received,
+prints the IP address from which each message was received.
 
- udplisten.pl [-m]
-
-The C<-m> switch causes this tool to output the entire message it received
-in addition to the IP address.
+ udplisten.pl [-m] [-c COUNT] [-a] [-p PORT] [-e EXPR] [-b RXSZ]
+ OPTIONS:
+   -m       - Output the entire message, not just the IP address
+   -c COUNT - Exit after receiving this many messages (default=1)
+   -a       - Continuously output all messages (overrides -c)
+   -p PORT  - UDP port number (default=12340)
+   -e EXPR  - Output only messages which match this Perl expression
+   -b RXSZ  - Receive length (default=1024)
 
 =head1 DETAILS
 
@@ -21,16 +25,18 @@ L<crontab(5)> entry (note: C<sudo apt-get install socat>):
  * * * * *  echo "HELLO xyZ129" | socat - UDP-DATAGRAM:255.255.255.255:12340,broadcast
 
 The string used can be completely random; the idea is for it to be unique
-to your device so you can identify it.
+to your device so you can identify it, for example:
+
+ udplisten.pl -e '/HELLO xyZ129/'
 
 Two alternate ways to listen are via L<netcat(1)> or L<socat(1)>
-(but this will receive any message, not just the specific one sent above):
+(note these will receive and print I<any> messages on that port):
 
  netcat -ul 12340           # may need to use -p12340 instead
  socat -u udp-recv:12340 -
 
 Don't forget to open the port for incoming UDP traffic on your local firewall,
-for example for [UFW](https://wiki.ubuntu.com/UncomplicatedFirewall):
+for example for L<UFW|https://wiki.ubuntu.com/UncomplicatedFirewall>:
 
  ufw allow in 12340/udp
 
@@ -61,42 +67,51 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-# The regular expression to be matched against incoming messages;
-# can be an exact match (via \A..\z anchors) or a partial match,
-# which is useful in combination with the -m switch.
-my $EXPECT = qr/\AHELLO xyZ129\n\z/;
-
 use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
 use IO::Socket::INET ();
+use Data::Dumper;
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
-sub VERSION_MESSAGE { say {shift} q$udplisten.pl v1.10$; return }
+sub VERSION_MESSAGE { say {shift} q$udplisten.pl v2.00$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-getopts('m', \my %opts) or pod2usage;
+getopts('mc:ap:e:b:', \my %opts) or pod2usage;
+my $FULLMSG = !!$opts{m};
+my $COUNT = $opts{c}//1;
+pod2usage("Bad count") unless $COUNT && $COUNT=~/^\d+$/ && $COUNT>0;
+my $ALLMSGS = !!$opts{a};
+my $PORT = $opts{p}//12340;
+pod2usage("Bad port") unless $PORT && $PORT=~/^\d+$/ && $PORT>0;
+my $EXPR = $opts{e};
+my $RXSZ = $opts{b}//1024;
+pod2usage("Bad receive length") unless $RXSZ && $RXSZ=~/^\d+$/ && $RXSZ>0;
+pod2usage("Extra arguments") if @ARGV;
 
 my $sock = IO::Socket::INET->new(
-		LocalPort => 12340,
+		LocalPort => $PORT,
 		Proto => 'udp',
 	) or die "error in socket creation: $!";
 
+my $count = 0;
 RXLOOP: while (1) {
-	defined $sock->recv(my $rx,1024)
+	defined $sock->recv(my $rx,$RXSZ)
 		or die "error during recv: $!";
 	my $peeraddr = $sock->peerhost;
-	if ($rx=~$EXPECT) {
-		if ($opts{m}) {
-			print "FROM $peeraddr:\n$rx";
-			print "\n" unless $rx=~/\n\z/;
-		}
-		else {
-			print "$peeraddr\n";
-		}
-		last RXLOOP;
+	my $match = 1;
+	if (defined $EXPR) {
+		local $_ = $rx;
+		eval "\$match = do { package CodeEval; $EXPR }; 1"
+			or die "Perl expression failed: ".($@||"Unknown error");
 	}
-	else
-		{ warn "ignoring unepexted message from $peeraddr: \"$rx\"\n" }
+	next RXLOOP unless $match;
+	print $FULLMSG ? "From $peeraddr: ".dumpstr($rx)."\n" : "$peeraddr\n";
+	last RXLOOP if !$ALLMSGS && ++$count>=$COUNT;
 }
 
 $sock->close;
 
+
+sub dumpstr {
+	chomp(my $s = Data::Dumper->new([''.shift])->Terse(1)->Useqq(1)->Dump);
+	return $s;
+}
