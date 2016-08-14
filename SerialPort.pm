@@ -59,7 +59,8 @@ use Symbol qw/gensym/;
 use Fcntl qw/:DEFAULT/;
 use Time::HiRes qw/gettimeofday tv_interval/;
 use IO::Select ();
-use IO::Termios ();
+use IO::Termios (); # on RPi, can be installed via CPAN + local::lib
+use Data::Dumper (); # for debugging
 
 our $DEFAULT_TIMEOUT_S = 2;
 
@@ -72,7 +73,14 @@ C<< mode => "19200,8,n,1" >> specifies the mode string
 (see C<set_mode> in L<IO::Termios>);
 C<< timeout_s => 2 >> specifies a timeout in seconds;
 C<< eof_fatal => 1 >> causes L</read> to throw an exception in case of EOF;
-C<< debug => 1 >> turns on debugging mode.
+C<< debug => 1 >> turns on debugging mode, and
+C<< debug => 2 >> turns on verbose debugging.
+
+I<Note> that some USB-to-serial interfaces use a fixed baud rate, and will
+always operate at that baud rate, regardless of the baud rate that is set,
+and these interfaces may also always report the wrong baud rate back to
+the user. They seem to work fine regardless of the incorrectly reported
+baud rate.
 
 =cut
 
@@ -88,24 +96,29 @@ sub open {
 			sel=>IO::Select->new($term),
 			timeout_s=>1, # set correctly below
 			eof_fatal=>$opts{eof_fatal},
-			debug=>$opts{debug},
+			debug=>$opts{debug}||0,
 			rxdata=>undef, timed_out=>0, eof=>0,
 		}, $class;
 	lock_ref_keys $self; # prevent typos
 	$self->timeout_s( defined $opts{timeout_s} ? $opts{timeout_s} : $DEFAULT_TIMEOUT_S );
-	$self->_debug("Opened $dev and created new IO::Termios\n");
+	$self->_debug(2, "Opened ",$dev," and created new IO::Termios");
 	if (defined $opts{mode}) {
-		$self->_debug("Setting mode $opts{mode}\n");
+		$self->_debug(2, "Setting mode ",$opts{mode});
 		$term->set_mode($opts{mode});
 	}
-	$self->_debug("Mode is ".$term->get_mode."\n");
+	$self->_debug(1, "Port ",$dev," is ready in mode ",$term->get_mode);
 	return $self;
 }
 
 sub _debug {
-	my ($self, @out) = @_;
-	return unless $self->{debug} && @out;
-	return CORE::print STDERR __PACKAGE__, " DEBUG: ", @out;
+	my ($self, $lvl, @out) = @_;
+	return if $self->{debug}<$lvl || !@out;
+	return CORE::print STDERR __PACKAGE__, " DEBUG: ", @out, "\n";
+}
+
+sub _dump {
+	return Data::Dumper->new([shift])->Terse(1)->Indent(0)->Useqq(1)
+		->Purity(1)->Quotekeys(0)->Sortkeys(1)->Dump;
 }
 
 =head2 C<timeout_s>
@@ -187,7 +200,7 @@ sub write {
 	my ($self, $data) = @_;
 	croak "write: port is closed" unless $self->{hnd};
 	croak "write: no data" unless defined $data;
-	$self->_debug("Writing \"$data\"\n");
+	$self->_debug(1, "TX ",_dump($data));
 	my $rv = $self->{hnd}->syswrite($data);
 	croak "write failed: $!" unless defined $rv;
 	# could handle the writing of less bytes than expected better...
@@ -243,16 +256,16 @@ sub read {
 	croak "read: port is closed" unless $self->{hnd};
 	$self->{rxdata} = ''; $self->{timed_out} = 0; $self->{eof} = 0;
 	my $remain_s = $self->{timeout_s};
-	$self->_debug("Attempting read, timeout $remain_s s\n");
+	$self->_debug(2, "Attempting read, timeout ",$remain_s," s");
 	my $t0 = [gettimeofday];
-	while (1) {
+	READLOOP: while (1) {
 		if ($self->{sel}->can_read($remain_s)) {
 			my $was_blocking = $self->{hnd}->blocking(0);
 			my $rv = $self->{hnd}->sysread(my $in, 1);
 			$self->{hnd}->blocking($was_blocking);
 			croak "read failed: $!" unless defined $rv;
 			if ($rv==0) {
-				$self->_debug("EOF\n");
+				$self->_debug(1, "EOF");
 				$self->{eof} = 1;
 				croak "read: end-of-file" if $self->{eof_fatal};
 				return }
@@ -262,22 +275,23 @@ sub read {
 				if ord($in)<0 || ord($in)>255; # paranoia
 			$self->{rxdata} .= $in;
 			if ($bytes<1) # readline mode
-				{ return $self->{rxdata} if substr($self->{rxdata},-length($/)) eq $/ }
+				{ last READLOOP if substr($self->{rxdata},-length($/)) eq $/ }
 			else
-				{ return $self->{rxdata} if length($self->{rxdata})>=$bytes }
+				{ last READLOOP if length($self->{rxdata})>=$bytes }
 		}
 		else {
 			my $elapsed_s = tv_interval($t0);
 			$remain_s = $self->{timeout_s} - $elapsed_s;
 			if ($remain_s <= 0) {
-				$self->_debug("Timeout read after $elapsed_s s\n");
+				$self->_debug(1, "Timeout read after ",$elapsed_s," s");
 				$self->{timed_out} = 1;
 				return }
 			else
-				{ $self->_debug("Continuing read, timeout $remain_s s\n") }
+				{ $self->_debug(2, "Continuing read, timeout ",$remain_s," s") }
 		}
 	}
-	confess "Internal error: should be unreachable"; # the things I do to make Perl::Critic happy ;-P
+	$self->_debug(1, "RX ",_dump($self->{rxdata}));
+	return $self->{rxdata};
 }
 
 =head2 C<close>
@@ -288,7 +302,7 @@ Closes the port.
 
 sub close {  ## no critic (ProhibitAmbiguousNames)
 	my ($self) = @_;
-	$self->_debug("Closing port\n");
+	$self->_debug(1, "Closing port");
 	my $hnd = $self->{hnd};
 	$self->{sel} = undef;
 	$self->{hnd} = undef;
