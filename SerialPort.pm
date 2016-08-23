@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.01 of this module.
+This is Version 0.02 of this module.
 B<This is an alpha version,> in particular the L</tied_fh> interface.
 
 =cut
@@ -138,6 +138,20 @@ sub timeout_s {
 	}
 	return $self->{timeout_s};
 }
+
+=head2 C<handle>
+
+Returns the underlying L<IO::Termios|IO::Termios> object.
+This is provided so you can read/change attributes etc. that are not yet
+accessible via this class.
+B<However,> the interaction of this class with direct read/write operations
+on the underlying L<IO::Termios|IO::Termios> object is currently
+unspecified.
+If the port is closed, this returns C<undef>.
+
+=cut
+
+sub handle { return shift->{hnd} }
 
 =head2 C<is_open>
 
