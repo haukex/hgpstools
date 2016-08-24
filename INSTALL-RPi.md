@@ -187,8 +187,13 @@ Other Notes
 	appropriate for your situation.
 	
 		SHELL=/bin/bash
-		  1 */2  *   *   *   if ! ping -c4 -w8 -Iwlan0 www.google.com >/dev/null; then echo "Restarting wlan0"; sudo ifdown wlan0; sudo ifup wlan0; fi
-	 
+		  1 */2  *   *   *   ping -c4 -w8 -Iwlan0 www.google.com >/dev/null; sleep 2; if ! ping -c4 -w8 -Iwlan0 www.google.com >/dev/null; then echo "Restarting wlan0"; sudo ifdown wlan0; sudo ifup wlan0; fi
+	
+	What can also help make wireless connectivity more stable is disabling
+	power management. The status can be checked via `iwconfig`, and it can
+	be disabled by adding the line `wireless-power off` in
+	`/etc/network/interfaces` for every wireless interface.
+	
 
 
 Author, Copyright, and License
