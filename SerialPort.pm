@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.02 of this module.
+This is Version 0.03 of this module.
 B<This is an alpha version,> in particular the L</tied_fh> interface.
 
 =cut
@@ -72,6 +72,7 @@ followed by options as name/value pairs:
 C<< mode => "19200,8,n,1" >> specifies the mode string
 (see C<set_mode> in L<IO::Termios>);
 C<< timeout_s => 2 >> specifies a timeout in seconds;
+C<< stty => ['raw','-echo'] >> is a simple helper for L</stty>;
 C<< eof_fatal => 1 >> causes L</read> to throw an exception in case of EOF;
 C<< debug => 1 >> turns on debugging mode, and
 C<< debug => 2 >> turns on verbose debugging.
@@ -84,7 +85,7 @@ baud rate.
 
 =cut
 
-my %OPEN_KNOWN_OPTS = map {$_=>1} qw/ mode timeout_s eof_fatal debug /;
+my %OPEN_KNOWN_OPTS = map {$_=>1} qw/ mode timeout_s stty eof_fatal debug /;
 sub open {
 	my ($class, $dev, %opts) = @_;
 	croak "open: no device specified" unless defined $dev;
@@ -106,6 +107,7 @@ sub open {
 		$self->_debug(2, "Setting mode ",$opts{mode});
 		$term->set_mode($opts{mode});
 	}
+	$self->stty(@{$opts{stty}}) if defined $opts{stty};
 	$self->_debug(1, "Port ",$dev," is ready in mode ",$term->get_mode);
 	return $self;
 }
@@ -139,11 +141,33 @@ sub timeout_s {
 	return $self->{timeout_s};
 }
 
+=head2 C<stty>
+
+This attempts to load L<IO::Stty|IO::Stty> and use its C<stty> method
+on this object with the mode arguments given to this method.
+Note that the modes C<'raw', '-echo'> can be very useful on serial ports.
+
+=cut
+
+our $IO_STTY_LOADED;
+sub stty {
+	my ($self,@mode) = @_;
+	croak "stty: port is closed" unless $self->{hnd};
+	if (!$IO_STTY_LOADED) {
+		eval "use IO::Stty; 1"  ## no critic (ProhibitStringyEval)
+			or croak "Failed to load IO::Stty: $@";
+		$IO_STTY_LOADED = 1;
+		$self->_debug(2, "Successfully loaded IO::Stty");
+	}
+	$self->_debug(2, "Calling stty ",join ', ', map {"\"$_\""} @mode);
+	return IO::Stty::stty($self->{hnd}, @mode);
+}
+
 =head2 C<handle>
 
 Returns the underlying L<IO::Termios|IO::Termios> object.
 This is provided so you can read/change attributes etc. that are not yet
-accessible via this class.
+accessible via this class. See also L</stty>!
 B<However,> the interaction of this class with direct read/write operations
 on the underlying L<IO::Termios|IO::Termios> object is currently
 unspecified.
