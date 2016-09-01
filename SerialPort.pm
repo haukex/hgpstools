@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.03 of this module.
+This is Version 0.04 of this module.
 B<This is an alpha version,> in particular the L</tied_fh> interface.
 
 =cut
@@ -99,6 +99,7 @@ sub open {
 			eof_fatal=>$opts{eof_fatal},
 			debug=>$opts{debug}||0,
 			rxdata=>undef, timed_out=>0, eof=>0,
+			abort=>0, aborted=>0,
 		}, $class;
 	lock_ref_keys $self; # prevent typos
 	$self->timeout_s( defined $opts{timeout_s} ? $opts{timeout_s} : $DEFAULT_TIMEOUT_S );
@@ -227,6 +228,37 @@ sub eof_fatal {
 	return $self->{eof_fatal};
 }
 
+=head2 C<abort>
+
+Because a signal usually causes Perl's C<select> to return immediately,
+you can call this function from a signal handler, in which case the
+L</read> call will return immediately.
+Note that Perl's C<select> documentation says: "whether select gets
+restarted after signals (say, SIGALRM) is implementation-dependent".
+For example, you can use this to implement a graceful exit, as shown below.
+See also L</aborted>.
+
+ local $SIG{INT} = sub { $port->abort };
+ my $rd = $port->readline;
+ if ($port->aborted) {
+     $port->close;
+     # ...other cleanup activities...
+     exit;
+ }
+
+=cut
+
+sub abort { shift->{abort}=1; return }
+
+=head2 C<aborted>
+
+Returns whether or not the last call to L</read> returned due to a
+call to L</abort>.
+
+=cut
+
+sub aborted { return shift->{aborted} }
+
 =head2 C<write>
 
 Accepts one argument, a string of data to be written to the port.
@@ -275,15 +307,15 @@ timing out when the timeout L</timeout_s> is reached.
 The timeout is overall, not per byte, so when receiving large amounts of
 data, the timeout must be selected to be long enough to receive the data.
 
-On timeout or at EOF, nothing is returned (undef/empty list),
-use L</timed_out> and L</eof> to find out whether it was a timeout or EOF.
-However, if the option C<eof_fatal> is set, an EOF is a fatal error.
+On timeout, L</abort>, or at EOF, nothing is returned (undef/empty list).
+Use L</timed_out>, L</aborted>, and L</eof> to find out the cause.
+Note that each call to C<read> resets these flags.
+If the option C<eof_fatal> is set, an EOF is a fatal error.
 In any case, the (partial) receive buffer can be accessed with L</rxdata>.
 
 If the number of bytes requested is zero or less, this function operates
 in "readline" mode, meaning that it returns when it receives the input
 record separator C<$/>.
-
 I<Unlike> Perl's C<readline>, always returns a single line,
 even in list context.
 
@@ -293,6 +325,7 @@ sub read {
 	my ($self, $bytes) = @_;
 	croak "read: port is closed" unless $self->{hnd};
 	$self->{rxdata} = ''; $self->{timed_out} = 0; $self->{eof} = 0;
+	$self->{abort} = 0; $self->{aborted} = 0;
 	my $remain_s = $self->{timeout_s};
 	$self->_debug(2, "Attempting read, timeout ",$remain_s," s");
 	my $t0 = [gettimeofday];
@@ -320,6 +353,10 @@ sub read {
 		else {
 			my $elapsed_s = tv_interval($t0);
 			$remain_s = $self->{timeout_s} - $elapsed_s;
+			if ($self->{abort}) {
+				$self->_debug(1, "Aborted read after ",$elapsed_s," s");
+				$self->{aborted} = 1;
+				return }
 			if ($remain_s <= 0) {
 				$self->_debug(1, "Timeout read after ",$elapsed_s," s");
 				$self->{timed_out} = 1;
