@@ -21,6 +21,15 @@ status messages from the logger such as "start", "stop", "connect" and "disconne
 By default it outputs the messages with a timestamp (i.e. they are mixed
 in with the NMEA stream).
 
+You may want to disable L<gpsd(8)> to avoid conflicts:
+
+ sudo update-rc.d -f gpsd remove
+ sudo service gpsd stop
+
+If your GPS device is outputting binary data, try L<gpsctl(1)>:
+
+ sudo gpsctl -n /dev/ttyUSB0
+
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
 Copyright (c) 2016 Hauke Daempfling (haukex@zero-g.net)
@@ -42,6 +51,7 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
+# See documentation of serlog.pl to see how to create the "usb_gps" symlink
 our $SERIALPORT = '/dev/usb_gps';
 our $BAUDRATE = 4800;
 

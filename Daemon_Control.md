@@ -43,7 +43,7 @@ Additional useful commands:
 
 For even more information, see the documentation of `Daemon::Control`
 (e.g. <http://search.cpan.org/search?query=Daemon::Control>),
-<https://wiki.debian.org/LSBInitScripts> and `man 8 insserv(8)`.
+<https://wiki.debian.org/LSBInitScripts> and `man 8 insserv`.
 
 
 Author, Copyright, and License

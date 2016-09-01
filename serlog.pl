@@ -39,7 +39,8 @@ This setting can be overridden with the C<-b> command line option.
 =item C<$HANDLE_LINE> - This must be a code reference, it is called for
 every line received. The line is passed via C<$_> I<with the end-of-line stripped>,
 and the code can check and manipulate C<$_>.
-The resulting value of C<$_> is written to C<STDOUT>.
+The resulting value of C<$_> is written to C<STDOUT>, unless
+C<$_> is empty (zero length); you can use this to filter the output.
 The default code only adds a newline character, everything else received
 on the serial port is passed through unchanged.
 
@@ -72,15 +73,6 @@ You may need to add the user to the group C<dialout> (in Debian, this
 normally gives full and direct access to serial ports):
 
  sudo adduser <username> dialout
-
-You may want to disable L<gpsd(8)> to avoid conflicts:
-
- sudo update-rc.d -f gpsd remove
- sudo service gpsd stop
-
-If your GPS device is outputting binary data, try L<gpsctl(1)>:
-
- sudo gpsctl -n /dev/ttyUSB0
 
 If you're connecting multiple USB devices to your system and you don't want
 to figure out the device name every time, you can use L<udev(7)>. Create
