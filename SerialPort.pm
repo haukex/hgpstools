@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.04 of this module.
+This is Version 0.05 of this module.
 B<This is an alpha version,> in particular the L</tied_fh> interface.
 
 =cut
@@ -55,7 +55,7 @@ B<This is an alpha version,> in particular the L</tied_fh> interface.
 use Carp;
 use Scalar::Util qw/looks_like_number/;
 use Hash::Util qw/lock_ref_keys/;
-use Symbol qw/gensym/;
+use IO::Handle ();
 use Fcntl qw/:DEFAULT/;
 use Time::HiRes qw/gettimeofday tv_interval/;
 use IO::Select ();
@@ -71,11 +71,9 @@ First argument must be the filename of the device (e.g. F</dev/ttyUSB0>),
 followed by options as name/value pairs:
 C<< mode => "19200,8,n,1" >> specifies the mode string
 (see C<set_mode> in L<IO::Termios>);
-C<< timeout_s => 2 >> specifies a timeout in seconds;
 C<< stty => ['raw','-echo'] >> is a simple helper for L</stty>;
-C<< eof_fatal => 1 >> causes L</read> to throw an exception in case of EOF;
-C<< debug => 1 >> turns on debugging mode, and
-C<< debug => 2 >> turns on verbose debugging.
+and the additional options are described in their respective sections:
+L</timeout_s>, L</flexle>, L</chomp>, L</eof_fatal>, and L</debug>.
 
 I<Note> that some USB-to-serial interfaces use a fixed baud rate, and will
 always operate at that baud rate, regardless of the baud rate that is set,
@@ -85,7 +83,7 @@ baud rate.
 
 =cut
 
-my %OPEN_KNOWN_OPTS = map {$_=>1} qw/ mode timeout_s stty eof_fatal debug /;
+my %OPEN_KNOWN_OPTS = map {$_=>1} qw/ mode timeout_s stty flexle chomp eof_fatal debug /;
 sub open {
 	my ($class, $dev, %opts) = @_;
 	croak "open: no device specified" unless defined $dev;
@@ -100,6 +98,8 @@ sub open {
 			debug=>$opts{debug}||0,
 			rxdata=>undef, timed_out=>0, eof=>0,
 			abort=>0, aborted=>0,
+			flexle=>$opts{flexle}, chomp=>$opts{chomp},
+			prev_was_cr=>0, # keeps state for "read"
 		}, $class;
 	lock_ref_keys $self; # prevent typos
 	$self->timeout_s( defined $opts{timeout_s} ? $opts{timeout_s} : $DEFAULT_TIMEOUT_S );
@@ -126,8 +126,13 @@ sub _dump {
 
 =head2 C<timeout_s>
 
+The time in seconds after which a call to L</read> times out.
+Fractional seconds may be specified, but whether or not they are respected
+depends on the underlying C<select> call.
+
 With no arguments, returns the current timeout setting.
-With one argument, sets the timeout setting to that value (in seconds).
+With one argument, sets the timeout setting to that value (in seconds)
+and returns the new value.
 
 =cut
 
@@ -145,8 +150,11 @@ sub timeout_s {
 =head2 C<stty>
 
 This attempts to load L<IO::Stty|IO::Stty> and use its C<stty> method
-on this object with the mode arguments given to this method.
+on this object's handle with the mode arguments given to this method.
 Note that the modes C<'raw', '-echo'> can be very useful on serial ports.
+
+If this function is not used, L<IO::Stty|IO::Stty> is not required to
+be installed.
 
 =cut
 
@@ -188,8 +196,8 @@ sub is_open { return !!(shift->{hnd}) }
 
 =head2 C<rxdata>
 
-Returns the receive data buffer.
-Useful if L</read> returned C<undef> due to timeout or EOF.
+Returns the receive data buffer. Useful if L</read> returned C<undef>
+but you're still interested in the partial data.
 
 =cut
 
@@ -211,21 +219,55 @@ Returns whether or not the last call to L</read> failed due to EOF.
 
 sub eof { return shift->{eof} }
 
+=head2 C<flexle>
+
+This boolean setting, when enabled, causes L</read> in "L</Readline Mode>"
+to handle CR, LF, and CRLF line endings.
+See L</Readline Mode> for more details.
+
+With no arguments, returns the current C<flexle> setting.
+With one argument, sets the C<flexle> setting and returns the new value.
+
+=head2 C<chomp>
+
+This boolean setting, when enabled, causes L</read> in "L</Readline Mode>"
+to remove the line ending from the returned string. Note that this
+setting is ignored when L</flexle> is enabled.
+See L</Readline Mode> for more details.
+
+With no arguments, returns the current C<chomp> setting.
+With one argument, sets the C<chomp> setting and returns the new value.
+
 =head2 C<eof_fatal>
 
+This boolean setting, when enabled, causes L</read> to throw an exception
+in case of EOF. See L</read>.
+
 With no arguments, returns the current C<eof_fatal> setting.
-With one argument, sets the C<eof_fatal> setting.
+With one argument, sets the C<eof_fatal> setting and returns the new value.
+
+=head2 C<debug>
+
+Sets the debug level: 1 is normal debugging, 2 is verbose debugging.
+More levels may be added in the future.
+
+With no arguments, returns the current C<debug> setting.
+With one argument, sets the C<debug> setting and returns the new value.
 
 =cut
 
-sub eof_fatal {
-	my $self = shift;
-	if (@_) {
-		my $eof_fatal = shift;
-		carp "too many arguments to timeout_s" if @_;
-		$self->{eof_fatal} = $eof_fatal;
-	}
-	return $self->{eof_fatal};
+for my $func (qw/flexle chomp eof_fatal debug/) {
+    my $sub = sub {
+        my $self = shift;
+        if (@_) {
+			my $newval = shift;
+			carp "too many arguments to $func" if @_;
+			$self->{$func} = $newval;
+		}
+        return $self->{$func};
+    };
+    no strict 'refs';  ## no critic (ProhibitNoStrict)
+    *{__PACKAGE__."::$func"} = $sub;
 }
 
 =head2 C<abort>
@@ -267,9 +309,11 @@ Returns the number of bytes written.
 =cut
 
 sub write {
-	my ($self, $data) = @_;
+	my $self = shift;
+	my $data = shift;
 	croak "write: port is closed" unless $self->{hnd};
 	croak "write: no data" unless defined $data;
+	carp "too many arguments to write (use print instead?)" if @_;
 	$self->_debug(1, "TX ",_dump($data));
 	my $rv = $self->{hnd}->syswrite($data);
 	croak "write failed: $!" unless defined $rv;
@@ -294,7 +338,7 @@ sub print {  ## no critic (RequireArgUnpacking)
 
 =head2 C<readline>
 
-Simply calls L</read> in "readline mode". See L</read>.
+Simply calls L</read> in "readline mode" - see L</Readline Mode>.
 
 =cut
 
@@ -307,21 +351,39 @@ timing out when the timeout L</timeout_s> is reached.
 The timeout is overall, not per byte, so when receiving large amounts of
 data, the timeout must be selected to be long enough to receive the data.
 
-On timeout, L</abort>, or at EOF, nothing is returned (undef/empty list).
+Unlike Perl's C<read> and C<sysread>, this function always returns either
+the requested number of bytes, or nothing (C<undef> / the empty list)
+on timeout, L</abort>, or at end-of-file (EOF).
 Use L</timed_out>, L</aborted>, and L</eof> to find out the cause.
 Note that each call to C<read> resets these flags.
-If the option C<eof_fatal> is set, an EOF is a fatal error.
+If the option L</eof_fatal> is set, an EOF is a fatal error.
 In any case, the (partial) receive buffer can be accessed with L</rxdata>.
 
-If the number of bytes requested is zero or less, this function operates
-in "readline" mode, meaning that it returns when it receives the input
-record separator C<$/>.
-I<Unlike> Perl's C<readline>, always returns a single line,
-even in list context.
+=head3 Readline Mode
+
+If the number of bytes requested is zero or less, L</read> operates
+in "readline mode", meaning that it returns when it has received a full
+line. See also the helper L</readline>.
+I<Unlike> Perl's C<readline>, this will always return
+a single line, even in list context!
+
+If L</flexle> is set, the line ending may be CR, LF, or CRLF (a sequence of
+LFCR would be interpreted as two line ending characters). The line ending
+will not be returned in the string, regardless of the L</chomp> setting.
+B<Note> that when the remote side is sending CRLF line endings and you mix
+L</flexle> with non-L</flexle> calls, the latter including L</read>ing
+specific numbers of bytes, this will cause leftover LF characters to appear
+at the beginning of strings returned from non-L</flexle> calls.
+
+If L</flexle> is off, the line ending is the input record separator C<$/>,
+and if L</chomp> is enabled, the line ending is removed from the string.
+B<Note> that the special C<$/> functions "paragraph mode", "slurp mode",
+and "record mode" are I<not> supported and will currently cause
+C<read> to die!
 
 =cut
 
-sub read {
+sub read {  ## no critic (ProhibitExcessComplexity)
 	my ($self, $bytes) = @_;
 	croak "read: port is closed" unless $self->{hnd};
 	$self->{rxdata} = ''; $self->{timed_out} = 0; $self->{eof} = 0;
@@ -340,15 +402,36 @@ sub read {
 				$self->{eof} = 1;
 				croak "read: end-of-file" if $self->{eof_fatal};
 				return }
-			confess "internal error: bad number of bytes: rv=$rv, got=".length($in)
+			confess "internal error: bad number of bytes: sysread returned $rv, but got ".length($in)." bytes"
 				unless $rv==1 && length($in)==$rv; # paranoia
 			confess "internal error: byte out of range: ".ord($in)
 				if ord($in)<0 || ord($in)>255; # paranoia
-			$self->{rxdata} .= $in;
-			if ($bytes<1) # readline mode
-				{ last READLOOP if substr($self->{rxdata},-length($/)) eq $/ }
-			else
-				{ last READLOOP if length($self->{rxdata})>=$bytes }
+			my $done;
+			if ($bytes<1) { # readline mode
+				if ($self->{flexle}) { # flexible line endings
+					if ($self->{prev_was_cr} && $in eq "\x0A")
+						{} # ignore LF following a CR
+					elsif ($in eq "\x0D" || $in eq "\x0A")
+						{ $done=1 } # CR or LF ends the line
+					else
+						{ $self->{rxdata} .= $in }
+				}
+				else { # normal line endings (IRS $/)
+					$self->{rxdata} .= $in;
+					croak "read: \$/ slurp mode unsupported" if !defined($/);
+					croak "read: \$/ paragraph mode unsupported" if !length($/);
+					croak "read: \$/ record mode unsupported (use read(\$bytecount) instead)" if ref($/);
+					if (substr($self->{rxdata},-length($/)) eq $/) {
+						CORE::chomp($self->{rxdata}) if $self->{chomp};
+						$done=1 }
+				}
+			}
+			else {
+				$self->{rxdata} .= $in;
+				$done=1 if length($self->{rxdata})>=$bytes;
+			}
+			$self->{prev_was_cr} = $in eq "\x0D";
+			last READLOOP if $done;
 		}
 		else {
 			my $elapsed_s = tv_interval($t0);
@@ -387,16 +470,18 @@ sub close {  ## no critic (ProhibitAmbiguousNames)
 
 =head2 C<tied_fh>
 
-Returns a filehandle tied to this port object
-(use this method instead of Perl's C<tie>).
+Returns a new filehandle tied to this port object (lexical filehandles
+are generally recommended instead of global filehandles).
 The tied handle is a simple wrapper around this module's methods.
 
 B<Warning:> Unlike Perl's lexical file handles, the port is not
 automatically closed when the handle goes out of scope,
 you B<must> instead explicitly call L</close>.
 
-Note: When using the tied C<readline> (C<< <$handle> >>) in list context,
-the timeout applies on a per-line basis.
+The tied C<readline> (C<< <$handle> >>) in list context is emulated
+by calling L</readline> in a loop until it returns C<undef> (due to
+timeout, abort, or EOF, as described in L</read>). This means the
+timeout value applies on a per-line basis.
 
 C<sysread>, C<read> and C<write>'s offset and length arguments are
 emulated using C<substr>.
@@ -409,7 +494,7 @@ amount of data. Use L</timed_out> to determine if a read timed out.
 
 sub tied_fh {
 	my ($self) = @_;
-	my $fh = gensym;
+	my $fh = IO::Handle->new;
 	tie *$fh, 'SerialPort', $self;
 	return $fh;
 }
