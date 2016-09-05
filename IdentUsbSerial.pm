@@ -3,7 +3,7 @@ package IdentUsbSerial;
 use warnings;
 use strict;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -26,7 +26,7 @@ This makes a lot of assumptions about the structure of the F</sys> filesystem.
 This works fine on my Raspberry Pi with the current Raspbian, but of course
 this may not work on other systems because I haven't tested it there yet.
 
-This is Version 0.01 of this module.
+This is Version 0.02 of this module.
 B<This is an alpha version.>
 
 =cut
@@ -44,6 +44,7 @@ Returns a list of hashrefs containing information on all of the C<usb-serial> TT
 Accepts a hash with fields C<vend>, C<prod>, and C<ser> to filter the results.
 C<vend> and C<prod> are case-insensitively matched against the files F<idVendor> resp. F<idProduct>,
 and C<ser> is matched case-sensitively against the file F<serial>.
+If any of the files F<idVendor>, F<idProduct>, or F<serial> don't exist, C<undef> is returned.
 The returned list is sorted by the C<usbtty> field.
 
 =cut
@@ -61,8 +62,9 @@ sub ident_usbser {
 		next unless defined $usbtty && $usbtty->is_dir;
 		my ($vend,$prod,$ser) =
 			# I'm not sure if $usbtty->parent->parent is always correct (works for now)
-			map { scalar $usbtty->parent->parent ->file($_)->slurp(chomp=>1) }
-			qw/idVendor idProduct serial/;
+			map { my $f = $usbtty->parent->parent ->file($_);
+				-e $f ? scalar $f->slurp(chomp=>1) : undef }
+					qw/idVendor idProduct serial/;
 		next if defined $args{vend} && lc $vend ne lc $args{vend};
 		next if defined $args{prod} && lc $prod ne lc $args{prod};
 		next if defined $args{ser} && $ser ne $args{ser};
