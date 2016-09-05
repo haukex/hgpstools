@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.05 of this module.
+This is Version 0.06 of this module.
 B<This is an alpha version,> in particular the L</tied_fh> interface.
 
 =cut
@@ -91,7 +91,7 @@ sub open {
 	sysopen my $fh, $dev, O_RDWR or croak "open: sysopen failed: $!";
 	my $term = IO::Termios->new($fh) or croak "open: failed to make new IO::Termios: $!";
 	my $self = bless {
-			hnd=>$term,
+			dev=>$dev, hnd=>$term,
 			sel=>IO::Select->new($term),
 			timeout_s=>1, # set correctly below
 			eof_fatal=>$opts{eof_fatal},
@@ -122,29 +122,6 @@ sub _debug {
 sub _dump {
 	return Data::Dumper->new([shift])->Terse(1)->Indent(0)->Useqq(1)
 		->Purity(1)->Quotekeys(0)->Sortkeys(1)->Dump;
-}
-
-=head2 C<timeout_s>
-
-The time in seconds after which a call to L</read> times out.
-Fractional seconds may be specified, but whether or not they are respected
-depends on the underlying C<select> call.
-
-With no arguments, returns the current timeout setting.
-With one argument, sets the timeout setting to that value (in seconds)
-and returns the new value.
-
-=cut
-
-sub timeout_s {
-	my $self = shift;
-	if (@_) {
-		my $to = shift;
-		carp "too many arguments to timeout_s" if @_;
-		croak "bad timeout_s value" if !looks_like_number($to) || $to<=0;
-		$self->{timeout_s} = $to;
-	}
-	return $self->{timeout_s};
 }
 
 =head2 C<stty>
@@ -182,9 +159,50 @@ on the underlying L<IO::Termios|IO::Termios> object is currently
 unspecified.
 If the port is closed, this returns C<undef>.
 
+=head2 C<dev>
+
+Returns the device name initially provided to L</open>.
+
+=head2 C<rxdata>
+
+Returns the receive data buffer. Useful if L</read> returned C<undef>
+but you're still interested in the partial data.
+
+=head2 C<timed_out>
+
+Returns whether or not the last call to L</read> failed due to a timeout.
+
+=head2 C<eof>
+
+Returns whether or not the last call to L</read> failed due to EOF.
+
+Note that USB-to-serial converters can be unplugged. Testing has so far
+shown that in this case, a call to L</read> will return with an EOF
+condition. If you want to detect such an unplug event, you can test
+for the existence of the device, for example with Perl's C<-e> operator,
+after the L</read> function returns with an EOF. Note that some tests
+on some systems have shown that the F</dev/> entry may not disappear
+immediately, so if you want to be sure of an unplug event, you could
+implement a brief C<sleep> before testing the existence of the device.
+
+=head2 C<aborted>
+
+Returns whether or not the last call to L</read> returned due to a
+call to L</abort>.
+
 =cut
 
-sub handle { return shift->{hnd} }
+my %getters = ( handle=>'hnd',
+	map {$_=>$_} qw/dev rxdata timed_out eof aborted/);
+while (my ($func,$field) = each %getters) {
+    my $sub = sub {
+        my $self = shift;
+		carp "too many arguments to $func" if @_;
+        return $self->{$field};
+    };
+    no strict 'refs';  ## no critic (ProhibitNoStrict)
+    *{__PACKAGE__."::$func"} = $sub;
+}
 
 =head2 C<is_open>
 
@@ -193,31 +211,6 @@ Returns whether or not the port is still open.
 =cut
 
 sub is_open { return !!(shift->{hnd}) }
-
-=head2 C<rxdata>
-
-Returns the receive data buffer. Useful if L</read> returned C<undef>
-but you're still interested in the partial data.
-
-=cut
-
-sub rxdata { return shift->{rxdata} }
-
-=head2 C<timed_out>
-
-Returns whether or not the last call to L</read> failed due to a timeout.
-
-=cut
-
-sub timed_out { return shift->{timed_out} }
-
-=head2 C<eof>
-
-Returns whether or not the last call to L</read> failed due to EOF.
-
-=cut
-
-sub eof { return shift->{eof} }
 
 =head2 C<flexle>
 
@@ -256,50 +249,43 @@ With one argument, sets the C<debug> setting and returns the new value.
 
 =cut
 
-for my $func (qw/flexle chomp eof_fatal debug/) {
+my %setters = map {$_=>$_} qw/flexle chomp eof_fatal debug/;
+while (my ($func,$field) = each %setters) {
     my $sub = sub {
         my $self = shift;
         if (@_) {
 			my $newval = shift;
 			carp "too many arguments to $func" if @_;
-			$self->{$func} = $newval;
+			$self->{$field} = $newval;
 		}
-        return $self->{$func};
+        return $self->{$field};
     };
     no strict 'refs';  ## no critic (ProhibitNoStrict)
     *{__PACKAGE__."::$func"} = $sub;
 }
 
-=head2 C<abort>
+=head2 C<timeout_s>
 
-Because a signal usually causes Perl's C<select> to return immediately,
-you can call this function from a signal handler, in which case the
-L</read> call will return immediately.
-Note that Perl's C<select> documentation says: "whether select gets
-restarted after signals (say, SIGALRM) is implementation-dependent".
-For example, you can use this to implement a graceful exit, as shown below.
-See also L</aborted>.
+The time in seconds after which a call to L</read> times out.
+Fractional seconds may be specified, but whether or not they are respected
+depends on the underlying C<select> call.
 
- local $SIG{INT} = sub { $port->abort };
- my $rd = $port->readline;
- if ($port->aborted) {
-     $port->close;
-     # ...other cleanup activities...
-     exit;
- }
+With no arguments, returns the current timeout setting.
+With one argument, sets the timeout setting to that value (in seconds)
+and returns the new value.
 
 =cut
 
-sub abort { shift->{abort}=1; return }
-
-=head2 C<aborted>
-
-Returns whether or not the last call to L</read> returned due to a
-call to L</abort>.
-
-=cut
-
-sub aborted { return shift->{aborted} }
+sub timeout_s {
+	my $self = shift;
+	if (@_) {
+		my $to = shift;
+		carp "too many arguments to timeout_s" if @_;
+		croak "bad timeout_s value" if !looks_like_number($to) || $to<=0;
+		$self->{timeout_s} = $to;
+	}
+	return $self->{timeout_s};
+}
 
 =head2 C<write>
 
@@ -451,6 +437,28 @@ sub read {  ## no critic (ProhibitExcessComplexity)
 	$self->_debug(1, "RX ",_dump($self->{rxdata}));
 	return $self->{rxdata};
 }
+
+=head2 C<abort>
+
+Because a signal usually causes Perl's C<select> to return immediately,
+you can call this function from a signal handler, in which case the
+L</read> call will return immediately.
+Note that Perl's C<select> documentation says: "whether select gets
+restarted after signals (say, SIGALRM) is implementation-dependent".
+For example, you can use this to implement a graceful exit, as shown below.
+See also L</aborted>.
+
+ local $SIG{INT} = sub { $port->abort };
+ my $rd = $port->readline;
+ if ($port->aborted) {
+     $port->close;
+     # ...other cleanup activities...
+     exit;
+ }
+
+=cut
+
+sub abort { shift->{abort}=1; return }
 
 =head2 C<close>
 
