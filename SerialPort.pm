@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.06 of this module.
+This is Version 0.07 of this module.
 B<This is an alpha version,> in particular the L</tied_fh> interface.
 
 =cut
@@ -88,12 +88,11 @@ sub open {
 	my ($class, $dev, %opts) = @_;
 	croak "open: no device specified" unless defined $dev;
 	$OPEN_KNOWN_OPTS{$_} or croak "open: bad option \"$_\"" for keys %opts;
-	sysopen my $fh, $dev, O_RDWR or croak "open: sysopen failed: $!";
-	my $term = IO::Termios->new($fh) or croak "open: failed to make new IO::Termios: $!";
 	my $self = bless {
-			dev=>$dev, hnd=>$term,
-			sel=>IO::Select->new($term),
-			timeout_s=>1, # set correctly below
+			dev=>$dev,
+			open_mode=>$opts{mode}, open_stty=>$opts{stty},
+			hnd=>undef, sel=>undef, # set later
+			timeout_s=>1, # set via setter below
 			eof_fatal=>$opts{eof_fatal},
 			debug=>$opts{debug}||0,
 			rxdata=>undef, timed_out=>0, eof=>0,
@@ -102,15 +101,34 @@ sub open {
 			prev_was_cr=>0, # keeps state for "read"
 		}, $class;
 	lock_ref_keys $self; # prevent typos
-	$self->timeout_s( defined $opts{timeout_s} ? $opts{timeout_s} : $DEFAULT_TIMEOUT_S );
-	$self->_debug(2, "Opened ",$dev," and created new IO::Termios");
-	if (defined $opts{mode}) {
-		$self->_debug(2, "Setting mode ",$opts{mode});
-		$term->set_mode($opts{mode});
-	}
-	$self->stty(@{$opts{stty}}) if defined $opts{stty};
-	$self->_debug(1, "Port ",$dev," is ready in mode ",$term->get_mode);
+	$self->timeout_s(defined $opts{timeout_s} ? $opts{timeout_s} : $DEFAULT_TIMEOUT_S);
+	$self->reopen;
 	return $self;
+}
+
+=head2 C<reopen>
+
+Reopens the port with the same arguments as provided to L</open>.
+L</close>s the port first if it is already open.
+
+=cut
+
+sub reopen {
+	my $self = shift;
+	carp "too many arguments to reopen" if @_;
+	if ($self->is_open) {
+		$self->close or croak "reopen: failed to close: $!" }
+	sysopen my $fh, $self->{dev}, O_RDWR or croak "open: sysopen failed: $!";
+	$self->{hnd} = IO::Termios->new($fh) or croak "open: failed to make new IO::Termios: $!";
+	$self->{sel} = IO::Select->new($self->{hnd});
+	$self->_debug(2, "Opened ",$self->{dev}," and created new IO::Termios");
+	if (defined $self->{open_mode}) {
+		$self->_debug(2, "Setting mode ",$self->{open_mode});
+		$self->{hnd}->set_mode($self->{open_mode});
+	}
+	$self->stty(@{$self->{open_stty}}) if defined $self->{open_stty};
+	$self->_debug(1, "Port ",$self->{dev}," is ready in mode ",$self->{hnd}->get_mode);
+	return 1;
 }
 
 sub _debug {
@@ -131,7 +149,9 @@ on this object's handle with the mode arguments given to this method.
 Note that the modes C<'raw', '-echo'> can be very useful on serial ports.
 
 If this function is not used, L<IO::Stty|IO::Stty> is not required to
-be installed.
+be installed. To detect whether L<IO::Stty|IO::Stty> is installed at
+compile time, instead of having the failure be at runtime, add
+C<use IO::Stty ();> to the top of your script.
 
 =cut
 
@@ -234,7 +254,7 @@ With one argument, sets the C<chomp> setting and returns the new value.
 =head2 C<eof_fatal>
 
 This boolean setting, when enabled, causes L</read> to throw an exception
-in case of EOF. See L</read>.
+in case of EOF. See also L</read> and L</eof>.
 
 With no arguments, returns the current C<eof_fatal> setting.
 With one argument, sets the C<eof_fatal> setting and returns the new value.
@@ -343,6 +363,7 @@ on timeout, L</abort>, or at end-of-file (EOF).
 Use L</timed_out>, L</aborted>, and L</eof> to find out the cause.
 Note that each call to C<read> resets these flags.
 If the option L</eof_fatal> is set, an EOF is a fatal error.
+See L</eof> for some more notes on EOF.
 In any case, the (partial) receive buffer can be accessed with L</rxdata>.
 
 =head3 Readline Mode
@@ -473,6 +494,7 @@ sub close {  ## no critic (ProhibitAmbiguousNames)
 	$self->{sel} = undef;
 	$self->{hnd} = undef;
 	$self->{rxdata} = undef; $self->{timed_out} = 0; $self->{eof} = 0;
+	$self->{aborted} = 0;
 	return $hnd->close;
 }
 
