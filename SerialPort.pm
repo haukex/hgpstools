@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,8 +47,27 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.07 of this module.
+This is Version 0.08 of this module.
 B<This is an alpha version,> in particular the L</tied_fh> interface.
+
+=head2 Notes
+
+Some USB-to-serial interfaces use a fixed baud rate, and will always
+operate at that baud rate, regardless of the baud rate that is set,
+and these interfaces may also always report the wrong baud rate back to
+the user. They seem to work fine regardless of the incorrectly reported
+baud rate.
+
+USB-to-serial converters can be hot-plugged. Testing has so far shown that
+in this case, a call to L</read> will return with an EOF condition. If you
+want to detect such an unplug event, you can test for the existence of the
+device, for example with Perl's C<-e> operator, after the L</read> function
+returns with an EOF. Note that some tests on some systems have shown that
+the F</dev/> entry may not disappear immediately, so if you want to be sure
+of an unplug event, you could implement a brief C<sleep> before testing the
+existence of the device.
+
+=head1 Methods
 
 =cut
 
@@ -62,11 +81,22 @@ use IO::Select ();
 use IO::Termios (); # on RPi, can be installed via CPAN + local::lib
 use Data::Dumper (); # for debugging
 
-our $DEFAULT_TIMEOUT_S = 2;
+sub _dump {
+	return Data::Dumper->new([shift])->Terse(1)->Indent(0)->Useqq(1)
+		->Purity(1)->Quotekeys(0)->Sortkeys(1)->Dump;
+}
 
-=head2 C<open>
+sub _debug {
+	my ($self, $lvl, @out) = @_;
+	return if $self->{debug}<$lvl || !@out;
+	return CORE::print STDERR __PACKAGE__, " DEBUG: ", @out, "\n";
+}
 
-Opens a serial port and returns a new object.
+=head2 C<new>
+
+Creates and returns a new serial port object. The port is not yet opened,
+see L</open>. This is a class method, e.g. C<< SerialPort->new(...) >>.
+
 First argument must be the filename of the device (e.g. F</dev/ttyUSB0>),
 followed by options as name/value pairs:
 C<< mode => "19200,8,n,1" >> specifies the mode string
@@ -74,50 +104,56 @@ C<< mode => "19200,8,n,1" >> specifies the mode string
 C<< stty => ['raw','-echo'] >> is a simple helper for L</stty>;
 and the additional options are described in their respective sections:
 L</timeout_s>, L</flexle>, L</chomp>, L</eof_fatal>, and L</debug>.
-
-I<Note> that some USB-to-serial interfaces use a fixed baud rate, and will
-always operate at that baud rate, regardless of the baud rate that is set,
-and these interfaces may also always report the wrong baud rate back to
-the user. They seem to work fine regardless of the incorrectly reported
-baud rate.
+The default timeout is currently 2 seconds.
 
 =cut
 
-my %OPEN_KNOWN_OPTS = map {$_=>1} qw/ mode timeout_s stty flexle chomp eof_fatal debug /;
-sub open {
+our $DEFAULT_TIMEOUT_S = 2;
+
+my %KNOWN_OPTS_NEW = map {$_=>1} qw/ mode timeout_s stty flexle chomp eof_fatal debug /;
+sub new {
 	my ($class, $dev, %opts) = @_;
-	croak "open: no device specified" unless defined $dev;
-	$OPEN_KNOWN_OPTS{$_} or croak "open: bad option \"$_\"" for keys %opts;
+	croak "new: no device specified" unless defined $dev;
+	$KNOWN_OPTS_NEW{$_} or croak "new: bad option \"$_\"" for keys %opts;
 	my $self = bless {
 			dev=>$dev,
 			open_mode=>$opts{mode}, open_stty=>$opts{stty},
 			hnd=>undef, sel=>undef, # set later
-			timeout_s=>1, # set via setter below
+			timeout_s=>$DEFAULT_TIMEOUT_S, # set & validated via setter below
 			eof_fatal=>$opts{eof_fatal},
 			debug=>$opts{debug}||0,
-			rxdata=>undef, timed_out=>0, eof=>0,
-			abort=>0, aborted=>0,
+			rxdata=>undef,
+			timed_out=>0, eof=>0, aborted=>0,
+			abort=>0,
 			flexle=>$opts{flexle}, chomp=>$opts{chomp},
 			prev_was_cr=>0, # keeps state for "read"
 		}, $class;
 	lock_ref_keys $self; # prevent typos
-	$self->timeout_s(defined $opts{timeout_s} ? $opts{timeout_s} : $DEFAULT_TIMEOUT_S);
-	$self->reopen;
+	$self->timeout_s($opts{timeout_s}) if defined $opts{timeout_s};
 	return $self;
 }
 
-=head2 C<reopen>
+=head2 C<open>
 
-Reopens the port with the same arguments as provided to L</open>.
-L</close>s the port first if it is already open.
+When called as a class method, e.g. C<< SerialPort->open(...) >>, this is a
+convenience method that combines L</new> with an immediate C<open>.
+The arguments are exactly the same as to L</new>.
+
+When called on an existing object, e.g. C<< $port->open; >>, attempts to open
+the port. No arguments are accepted; the parameters used are those supplied
+to L</new>. The port must not be already open (see also L</reopen>).
+
+Returns the port object.
 
 =cut
 
-sub reopen {
+sub open {  ## no critic (RequireArgUnpacking)
 	my $self = shift;
-	carp "too many arguments to reopen" if @_;
-	if ($self->is_open) {
-		$self->close or croak "reopen: failed to close: $!" }
+	if (ref $self)
+		{ croak "too many arguments to open" if @_ }
+	else
+		{ $self = $self->new(@_) }
+	croak "open: port is already open" if $self->is_open;
 	sysopen my $fh, $self->{dev}, O_RDWR or croak "open: sysopen failed: $!";
 	$self->{hnd} = IO::Termios->new($fh) or croak "open: failed to make new IO::Termios: $!";
 	$self->{sel} = IO::Select->new($self->{hnd});
@@ -128,18 +164,23 @@ sub reopen {
 	}
 	$self->stty(@{$self->{open_stty}}) if defined $self->{open_stty};
 	$self->_debug(1, "Port ",$self->{dev}," is ready in mode ",$self->{hnd}->get_mode);
-	return 1;
+	return $self;
 }
 
-sub _debug {
-	my ($self, $lvl, @out) = @_;
-	return if $self->{debug}<$lvl || !@out;
-	return CORE::print STDERR __PACKAGE__, " DEBUG: ", @out, "\n";
-}
+=head2 C<reopen>
 
-sub _dump {
-	return Data::Dumper->new([shift])->Terse(1)->Indent(0)->Useqq(1)
-		->Purity(1)->Quotekeys(0)->Sortkeys(1)->Dump;
+Like the method call L</open>,
+but L</close>s the port first if it is already open.
+Unlike L</open>, cannot be used as a class method.
+
+=cut
+
+sub reopen {
+	my $self = shift;
+	carp "too many arguments to reopen" if @_;
+	if ($self->is_open) {
+		$self->close or croak "reopen: failed to close: $!" }
+	return $self->open;
 }
 
 =head2 C<stty>
@@ -195,15 +236,7 @@ Returns whether or not the last call to L</read> failed due to a timeout.
 =head2 C<eof>
 
 Returns whether or not the last call to L</read> failed due to EOF.
-
-Note that USB-to-serial converters can be unplugged. Testing has so far
-shown that in this case, a call to L</read> will return with an EOF
-condition. If you want to detect such an unplug event, you can test
-for the existence of the device, for example with Perl's C<-e> operator,
-after the L</read> function returns with an EOF. Note that some tests
-on some systems have shown that the F</dev/> entry may not disappear
-immediately, so if you want to be sure of an unplug event, you could
-implement a brief C<sleep> before testing the existence of the device.
+See L</Notes> for some more notes on EOF.
 
 =head2 C<aborted>
 
@@ -363,7 +396,7 @@ on timeout, L</abort>, or at end-of-file (EOF).
 Use L</timed_out>, L</aborted>, and L</eof> to find out the cause.
 Note that each call to C<read> resets these flags.
 If the option L</eof_fatal> is set, an EOF is a fatal error.
-See L</eof> for some more notes on EOF.
+See L</Notes> for some more notes on EOF.
 In any case, the (partial) receive buffer can be accessed with L</rxdata>.
 
 =head3 Readline Mode
@@ -393,8 +426,9 @@ C<read> to die!
 sub read {  ## no critic (ProhibitExcessComplexity)
 	my ($self, $bytes) = @_;
 	croak "read: port is closed" unless $self->{hnd};
-	$self->{rxdata} = ''; $self->{timed_out} = 0; $self->{eof} = 0;
-	$self->{abort} = 0; $self->{aborted} = 0;
+	$self->{rxdata} = '';
+	$self->{timed_out} = 0; $self->{eof} = 0; $self->{aborted} = 0;
+	$self->{abort} = 0;
 	my $remain_s = $self->{timeout_s};
 	$self->_debug(2, "Attempting read, timeout ",$remain_s," s");
 	my $t0 = [gettimeofday];
@@ -493,8 +527,8 @@ sub close {  ## no critic (ProhibitAmbiguousNames)
 	my $hnd = $self->{hnd};
 	$self->{sel} = undef;
 	$self->{hnd} = undef;
-	$self->{rxdata} = undef; $self->{timed_out} = 0; $self->{eof} = 0;
-	$self->{aborted} = 0;
+	$self->{rxdata} = undef;
+	$self->{timed_out} = 0; $self->{eof} = 0; $self->{aborted} = 0;
 	return $hnd->close;
 }
 
