@@ -53,6 +53,15 @@ Example:
  our $GET_PORT = sub {
 	SerialPort->open('/dev/ttyUSB0',mode=>'9600,8,n,1',flexle=>1) };
 
+=head3 C<$READ_SIZE>
+
+This defaults to zero (0), which tells L<SerialPort|SerialPort> to
+read one line at a time. Set this to a positive integer to read that
+many bytes at a time. Note that in this case, the L<SerialPort|SerialPort>
+setting C<cont> is strongly recommended. Of course, if this option is
+set, L</$HANDLE_LINE> won't be passed lines, it will be passed records
+of the requested size.
+
 =head3 C<$HANDLE_LINE>
 
 This function should take the currently received line in the C<$_>
@@ -120,6 +129,7 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 # ### Default Settings ###
 our $GET_PORT = sub { die "Configuration file does not define \$GET_PORT" };
+our $READ_SIZE = 0;
 our $HANDLE_LINE = sub { $_.="\n" };
 our $HANDLE_STATUS = sub { $_.="\n" };
 our $OUTFILE = undef;
@@ -202,7 +212,7 @@ MAINLOOP: while($run) {
 	local $SIG{INT}  = sub { warn "Caught SIGINT, stopping...\n";  $port->abort; $run=0 };
 	local $SIG{TERM} = sub { warn "Caught SIGTERM, stopping...\n"; $port->abort; $run=0 };
 	READLOOP: while($run) {
-		my $line = $port->readline;
+		my $line = $port->read($READ_SIZE);
 		if (!defined $line) {
 			if ($port->eof) { sleep 1; last READLOOP }; # likely unplug
 			if ($port->aborted) { $run=0; last READLOOP; }

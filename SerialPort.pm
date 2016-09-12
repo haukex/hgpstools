@@ -103,14 +103,14 @@ C<< mode => "19200,8,n,1" >> specifies the mode string
 (see C<set_mode> in L<IO::Termios>);
 C<< stty => ['raw','-echo'] >> is a simple helper for L</stty>;
 and the additional options are described in their respective sections:
-L</timeout_s>, L</flexle>, L</chomp>, L</eof_fatal>, and L</debug>.
+L</timeout_s>, L</flexle>, L</chomp>, L</eof_fatal>, L</cont>, and L</debug>.
 The default timeout is currently 2 seconds.
 
 =cut
 
 our $DEFAULT_TIMEOUT_S = 2;
 
-my %KNOWN_OPTS_NEW = map {$_=>1} qw/ mode timeout_s stty flexle chomp eof_fatal debug /;
+my %KNOWN_OPTS_NEW = map {$_=>1} qw/ mode timeout_s stty flexle chomp eof_fatal cont debug /;
 sub new {
 	my ($class, $dev, %opts) = @_;
 	croak "new: no device specified" unless defined $dev;
@@ -121,6 +121,7 @@ sub new {
 			hnd=>undef, sel=>undef, # set later
 			timeout_s=>$DEFAULT_TIMEOUT_S, # set & validated via setter below
 			eof_fatal=>$opts{eof_fatal},
+			cont=>$opts{cont},
 			debug=>$opts{debug}||0,
 			rxdata=>undef,
 			timed_out=>0, eof=>0, aborted=>0,
@@ -292,6 +293,19 @@ in case of EOF. See also L</read> and L</eof>.
 With no arguments, returns the current C<eof_fatal> setting.
 With one argument, sets the C<eof_fatal> setting and returns the new value.
 
+=head2 C<cont>
+
+This boolean setting, when enabled, causes L</read> to I<not> clear the
+read data buffer L</rxdata> on each call. This is useful, for example,
+if you only received partial data before a timeout, and want to continue
+reading the same data.
+
+When this setting is disabled (the default), L</read> clears the read data
+buffer L</rxdata> on each call.
+
+With no arguments, returns the current C<cont> setting.
+With one argument, sets the C<cont> setting and returns the new value.
+
 =head2 C<debug>
 
 Sets the debug level: 1 is normal debugging, 2 is verbose debugging.
@@ -302,7 +316,7 @@ With one argument, sets the C<debug> setting and returns the new value.
 
 =cut
 
-my %setters = map {$_=>$_} qw/flexle chomp eof_fatal debug/;
+my %setters = map {$_=>$_} qw/flexle chomp eof_fatal cont debug/;
 while (my ($func,$field) = each %setters) {
     my $sub = sub {
         my $self = shift;
@@ -426,7 +440,7 @@ C<read> to die!
 sub read {  ## no critic (ProhibitExcessComplexity)
 	my ($self, $bytes) = @_;
 	croak "read: port is closed" unless $self->{hnd};
-	$self->{rxdata} = '';
+	$self->{rxdata} = '' unless $self->{cont};
 	$self->{timed_out} = 0; $self->{eof} = 0; $self->{aborted} = 0;
 	$self->{abort} = 0;
 	my $remain_s = $self->{timeout_s};
