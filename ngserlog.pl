@@ -16,8 +16,16 @@ TODO: Proofread and test this script and F<ngserlog_nmea.pl>.
 Together with a configuration file, this is a logger for a serial port
 based on L<SerialPort|SerialPort> which supports hot-plugging of USB
 devices. It writes received data and status messages to C<STDOUT> or to an
-output file, and log messages to C<STDERR>. The data written to the output
+output file, and log messages to C<syslog>. The data written to the output
 can be manipulated by the routines defined in the configuration.
+
+The C<syslog> messages will be logged as program name C<ngserlog>, facility
+C<user>, and if you're using C<rsyslog>, you can redirect them to another
+log file with the following example configuration file,
+F</etc/rsyslog.d/00-ngserlog.conf>:
+
+ if $programname == 'ngserlog' then /var/log/ngserlog.log
+ & ~
 
 =head2 CONFIGURATION FILE
 
@@ -32,6 +40,17 @@ The variable C<$NGSERLOG> (package C<main>) will be set before the config
 file is loaded; if the config file has a second purpose (such as a
 L<Daemon::Control|Daemon::Control> script), it should not execute any code
 other than setting the configuration variables if C<$NGSERLOG> is set.
+
+Any arguments on the command line after the configuration file name will
+be preserved in C<@ARGV> so the configuration file may use them; the
+configuration file must leave C<@ARGV> empty when it is done!
+
+The output of the routines defined in the configuration file will be
+redirected: Anything C<print>ed will go to the output file if it is
+configured, and C<warn>ing and C<die> messages will go to the C<syslog>.
+The configuration file can also make use of the C<info> function provided
+by this script to log to C<syslog> at "info" level. The configuration file
+should I<not> make use of Perl's one-argument C<select> function!
 
 =head3 C<$GET_PORT>
 
@@ -85,7 +104,7 @@ or the empty string or C<undef> for no output.
 Either C<undef> for C<STDOUT>, or a filename for the output to be written
 to (append mode).
 You can send the process a C<SIGUSR1> and it will reopen this file.
-(Note that the script will still write status messages to C<STDERR>.)
+(Note that the script will still write status messages to the C<syslog>.)
 
 =head3 C<$ON_START>
 
@@ -140,20 +159,25 @@ our $MAX_ERRORS = 100;
 
 use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
+use Sys::Syslog qw/openlog syslog closelog/;
 use SerialPort;
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
 sub VERSION_MESSAGE { say {shift} q$ngserlog.pl v0.01$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 getopts('', \my %opts) or pod2usage;
-@ARGV==1 or pod2usage;
+pod2usage unless @ARGV;
 my $CONFIGFILE = shift @ARGV;
+die "Bad configuration file name $CONFIGFILE" unless -f -r $CONFIGFILE;
+
+openlog('ngserlog','ndelay,pid','user');
+sub info { syslog('info','Info: %s',shift) }
+local $SIG{__WARN__} = sub { syslog('warning','Warn: %s',shift) };
+local $SIG{__DIE__}  = sub { syslog('err','Error: %s',shift) };
 
 our $NGSERLOG=1; # inform the config file that it is being loaded by us
 require $CONFIGFILE;
-
-local $SIG{__WARN__} = sub { warn "[".gmtime." UTC] (PID $$) "      .shift };
-local $SIG{__DIE__}  = sub { die  "[".gmtime." UTC] (PID $$) FATAL ".shift };
+pod2usage if @ARGV;
 
 # ### Main Loop ###
 
@@ -166,11 +190,11 @@ sub open_output {
 	$|=1; ## no critic (RequireLocalizedPunctuationVars)
 }
 open_output();
-local $SIG{USR1} = sub { warn "Caught SIGUSR1, reopening output...\n"; open_output() };
+local $SIG{USR1} = sub { info "Caught SIGUSR1, reopening output...\n"; open_output() };
 
 my $run=1;
-local $SIG{INT}  = sub { warn "Caught SIGINT, stopping...\n";  $run=0 };
-local $SIG{TERM} = sub { warn "Caught SIGTERM, stopping...\n"; $run=0 };
+local $SIG{INT}  = sub { info "Caught SIGINT, stopping...\n";  $run=0 };
+local $SIG{TERM} = sub { info "Caught SIGTERM, stopping...\n"; $run=0 };
 
 my $do_status = sub {
 		local $_ = shift;
@@ -180,7 +204,7 @@ my $do_status = sub {
 
 my $discon_informed = 0; # only inform once per disconnect event
 my $on_start_run = 0;
-warn "Entering main loop...\n";
+info "Entering main loop...\n";
 $do_status->("START");
 MAINLOOP: while($run) {
 	my $port;
@@ -193,7 +217,7 @@ MAINLOOP: while($run) {
 	};
 	if (!defined $port) {
 		if (!$discon_informed) {
-			warn "Device not connected (unplugged?) Waiting...\n";
+			info "Device not connected (unplugged?) Waiting...\n";
 			$do_status->("DISCONNECT");
 			$discon_informed = 1;
 		}
@@ -201,7 +225,7 @@ MAINLOOP: while($run) {
 		next MAINLOOP;
 	}
 	$discon_informed = 0;
-	warn "Device available, conntected to serial port\n";
+	info "Device available, conntected to serial port\n";
 	$do_status->("CONNECT");
 	if (!$on_start_run) {
 		$ON_START->($port);
@@ -209,8 +233,8 @@ MAINLOOP: while($run) {
 	}
 	$ON_CONNECT->($port);
 	$port->eof_fatal(0);
-	local $SIG{INT}  = sub { warn "Caught SIGINT, stopping...\n";  $port->abort; $run=0 };
-	local $SIG{TERM} = sub { warn "Caught SIGTERM, stopping...\n"; $port->abort; $run=0 };
+	local $SIG{INT}  = sub { info "Caught SIGINT, stopping...\n";  $port->abort; $run=0 };
+	local $SIG{TERM} = sub { info "Caught SIGTERM, stopping...\n"; $port->abort; $run=0 };
 	READLOOP: while($run) {
 		my $line = $port->read($READ_SIZE);
 		if (!defined $line) {
@@ -227,8 +251,9 @@ MAINLOOP: while($run) {
 	}
 	$port->close or error("Couldn't close the port: $!");
 }
-warn "Normal exit\n";
+info "Normal exit\n";
 $do_status->("STOP");
+closelog;
 exit;
 
 # ### Subs ###
@@ -237,8 +262,8 @@ sub error {
 	my ($msg) = @_;
 	state $errs = 0;
 	if (++$errs>=$MAX_ERRORS)
-		{ die "Error: $msg; too many errors ($errs), aborting\n" }
+		{ die "$msg; too many errors ($errs), aborting\n" }
 	else
-		{ warn "Error: $msg; continuing ($errs errors)\n" }
+		{ warn "$msg; continuing ($errs errors)\n" }
 	return;
 }

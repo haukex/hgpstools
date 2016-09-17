@@ -37,6 +37,7 @@ our $GET_PORT = sub {
 	return unless @devs;
 	my $devtty = $devs[0]{devtty};
 	return unless -e $devtty;
+	info "Opening port $devtty for NEMA data";
 	return SerialPort->open($devtty, mode=>'4800,8,n,1',
 		stty=>['raw','-echo'], flexle=>1, timeout_s=>3 );
 };
