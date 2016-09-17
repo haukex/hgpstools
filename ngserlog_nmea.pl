@@ -5,6 +5,18 @@ use 5.010; no feature 'switch';
 
 =head1 SYNOPSIS
 
+This is either a configuration file for F<ngserlog.pl> that handles NMEA
+data:
+
+ ./ngserlog.pl ./ngserlog_nmea.pl
+
+Or, it is a daemon wrapper for the above, providing a daemon named
+C<ngserlog_nmea> - Please see F<Daemon_Control.md> for usage information!
+
+ ./ngserlog_nmea.pl get_init_file
+
+=head1 DESCRIPTION
+
 TODO: Document
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
@@ -28,8 +40,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use lib '/home/pi/hgpstools';
-
 use IO::Stty (); # because we use "stty" option below
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
@@ -37,7 +47,7 @@ our $GET_PORT = sub {
 	return unless @devs;
 	my $devtty = $devs[0]{devtty};
 	return unless -e $devtty;
-	info "Opening port $devtty for NEMA data";
+	info("Opening port $devtty for NEMA data");
 	return SerialPort->open($devtty, mode=>'4800,8,n,1',
 		stty=>['raw','-echo'], flexle=>1, timeout_s=>3 );
 };
@@ -58,14 +68,13 @@ our $HANDLE_LINE = sub {
 	}
 	else
 		{ $err = "Invalid format" }
+	# escape all nonprintable and non-ASCII chars
+	s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
 	if ($err) {
-		s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
-		warn "Ignoring input ($err): $_\n";
+		warn "$err; ignoring input $_\n";
 		undef $_;
 		return;
 	}
-	# escape all nonprintable and non-ASCII chars
-	s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
 	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
 };
 our $HANDLE_STATUS = sub {
@@ -74,6 +83,8 @@ our $HANDLE_STATUS = sub {
 
 our $OUTFILE = '/home/pi/ngserlog/nmea_data.txt';
 
+# if this script is run directly instead of being required by ngserlog.pl,
+# it functions as a Daemon::Control script for itself
 our $NGSERLOG;
 if (!$NGSERLOG) {
 	require Daemon::Control;
@@ -87,6 +98,7 @@ if (!$NGSERLOG) {
 	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	# note that since we use the "outfile" option above, the stdout_file *should* remain empty
 	stdout_file  => '/home/pi/ngserlog/nmea_out.txt',
+	# since ngserlog now uses syslog, the stderr_file *should* also remain empty
 	stderr_file  => '/home/pi/ngserlog/nmea_err.txt',
 	pid_file     => '/home/pi/ngserlog/nmea.pid',
 	resource_dir => '/home/pi/ngserlog/',

@@ -38,8 +38,8 @@ Only use files you trust!
 
 The variable C<$NGSERLOG> (package C<main>) will be set before the config
 file is loaded; if the config file has a second purpose (such as a
-L<Daemon::Control|Daemon::Control> script), it should not execute any code
-other than setting the configuration variables if C<$NGSERLOG> is set.
+L<Daemon::Control|Daemon::Control> script), it should I<not> execute any
+code other than setting the configuration variables if C<$NGSERLOG> is set.
 
 Any arguments on the command line after the configuration file name will
 be preserved in C<@ARGV> so the configuration file may use them; the
@@ -49,8 +49,12 @@ The output of the routines defined in the configuration file will be
 redirected: Anything C<print>ed will go to the output file if it is
 configured, and C<warn>ing and C<die> messages will go to the C<syslog>.
 The configuration file can also make use of the C<info> function provided
-by this script to log to C<syslog> at "info" level. The configuration file
-should I<not> make use of Perl's one-argument C<select> function!
+by this script (package C<main>) to log to C<syslog> at "info" level.
+The configuration file should I<not> make use of Perl's one-argument
+C<select> function, should not install or change C<$SIG{__WARN__}> or
+C<$SIG{__DIE__}> handlers, and should not manipluate C<STDOUT> or C<STDERR>
+in any other way! Note these redirects are I<not> yet active while the
+configuration file is being loaded.
 
 =head3 C<$GET_PORT>
 
@@ -117,6 +121,11 @@ first argument.
 This code will be executed once every time the serial port is opened.
 The serial port object is passed as the first argument.
 
+=head3 C<$SYSLOG_TO_STDERR>
+
+Setting this boolean option causes the syslog messages to be printed
+to C<STDERR> as well.
+
 =head3 C<$MAX_ERRORS>
 
 The maximum number of errors that may be encountered while reading from
@@ -154,6 +163,7 @@ our $HANDLE_STATUS = sub { $_.="\n" };
 our $OUTFILE = undef;
 our $ON_START = sub {};
 our $ON_CONNECT = sub {};
+our $SYSLOG_TO_STDERR = 0;
 our $MAX_ERRORS = 100;
 # ###
 
@@ -169,25 +179,27 @@ getopts('', \my %opts) or pod2usage;
 pod2usage unless @ARGV;
 my $CONFIGFILE = shift @ARGV;
 die "Bad configuration file name $CONFIGFILE" unless -f -r $CONFIGFILE;
-
-openlog('ngserlog','ndelay,pid','user');
-sub info { syslog('info','Info: %s',shift) }
-local $SIG{__WARN__} = sub { syslog('warning','Warn: %s',shift) };
-local $SIG{__DIE__}  = sub { syslog('err','Error: %s',shift) };
-
 our $NGSERLOG=1; # inform the config file that it is being loaded by us
 require $CONFIGFILE;
 pod2usage if @ARGV;
+
+my $syslogopts = $SYSLOG_TO_STDERR ? 'ndelay,pid,perror' : 'ndelay,pid';
+openlog('ngserlog',$syslogopts,'user');
+sub info { chomp(my $m = shift); syslog('info','Info: %s',$m); return 1 }
+local $SIG{__WARN__} = sub { chomp(my $m = shift); syslog('warning','Warn: %s',$m) };
+local $SIG{__DIE__}  = sub { chomp(my $m = shift); syslog('err','Error: %s',$m) };
 
 # ### Main Loop ###
 
 sub open_output {
 	if (defined $OUTFILE) {
-		open my $fh, '>>', $OUTFILE or die "Error: Failed to open $OUTFILE for append: $!\n";
+		open my $fh, '>>', $OUTFILE  ## no critic (RequireBriefOpen)
+			or die "Error: Failed to open $OUTFILE for append: $!\n";
 		close or error("Failed to close output filehandle: $!");
-		select($fh);
+		select($fh);  ## no critic (ProhibitOneArgSelect)
 	}
 	$|=1; ## no critic (RequireLocalizedPunctuationVars)
+	return;
 }
 open_output();
 local $SIG{USR1} = sub { info "Caught SIGUSR1, reopening output...\n"; open_output() };
