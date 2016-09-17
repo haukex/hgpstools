@@ -156,7 +156,9 @@ module and applies to Raspbian Jessie >= 2016-03-18.
 	
 7.	The *most current* information to install the NMEA logging daemon is in the files
 referenced below! Here is a short summary of the steps needed at the time of writing:
-
+(TODO: Update these instructions for the change from `serlog.pl` to `ngserlog.pl`.
+For now please see `ngserlog.pl` and `ngserlog_nmea.pl` for instructions.)
+	
 		# the following is from serlog.pl
 		$ echo 'ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="usb_gps"' | sudo tee /etc/udev/rules.d/90-usbgps.rules
 		$ sudo service udev restart

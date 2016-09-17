@@ -55,12 +55,12 @@ A brief overview of the tools:
 	Instructions and tools to build a standalone GPS-synchronized NTP
 	server with a Raspberry Pi 3, an Adafruit "GPS Hat", and `chrony`.
 	
-*	**`serlog.pl`**
+*	**`ngserlog.pl`**
 	
 	A generic serial port logger with support for hot-plugging USB/RS232 adapters.
-	In combination with `serlog_conf_nmea.pl`, it processes NMEA data,
-	and `serlog_nmea_daemon.pl` turns it into a daemon.
-	These two files can be copied and adapted to log other kinds of data.
+	In combination with `ngserlog_nmea.pl`, it processes NMEA data,
+	and can be run as a daemon.
+	The configuration can be copied and adapted to log other kinds of data.
 	
 *	**`my_ip.pl`**
 	
@@ -70,9 +70,10 @@ A brief overview of the tools:
 	
 	Listen for a specific UDP message and report the sender's IP address.
 	
-*	**`filter_ts.pl`**
+*	**Other Files**
 	
-	Converts timestamps embedded in NMEA log files into fake NMEA records.
+	There are various other utilities in this project; each file should
+	contain documentation as to its purpose.
 
 
 Author, Copyright, and License

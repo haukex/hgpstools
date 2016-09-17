@@ -5,11 +5,10 @@ use 5.010; no feature 'switch';
 
 =head1 SYNOPSIS
 
-"Next-Gen" F<serlog.pl>. B<This is an alpha version.>
+This is a logger for serial ports based on L<SerialPort|SerialPort>
+with USB-to-serial hot-plugging support.
 
  ngserlog.pl CONFIGFILE
-
-TODO: Proofread and test this script and F<ngserlog_nmea.pl>.
 
 =head1 DESCRIPTION
 
@@ -27,6 +26,34 @@ F</etc/rsyslog.d/00-ngserlog.conf>:
  if $programname == 'ngserlog' then /var/log/ngserlog.log
  & ~
 
+The process can be stopped cleanly via a C<SIGTERM> or C<SIGINT>
+(typically C<Ctrl-C>).
+
+You may need to add the user to the group C<dialout> (in Debian, this
+normally gives full and direct access to serial ports):
+
+ sudo adduser <username> dialout
+
+If you're connecting multiple USB devices to your system and you don't want
+to figure out the device name every time, you can use L<udev(7)>. Create
+a file like the following in F</etc/udev/rules.d/> (e.g. F<90-usbgps.rules>):
+
+ ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="usb_gps"
+
+and then your device will always be available as F</dev/usb_gps>
+(you may need to do a C<sudo service udev restart>).
+(The above IDs are for a Navilock NL-302U.)
+There is also the module L<IdentUsbSerial|IdentUsbSerial>.
+
+Hint: For debugging, you can simply C<cat /dev/ttyUSB0> after setting
+the serial port speed via e.g. C<stty -F /dev/ttyUSB0 4800 raw>.
+Also, you can use L<minicom(1)>: C<minicom -D/dev/ttyUSB0>
+(configure via C<Ctrl-A o>, exit via C<Ctrl-A q>)
+or L<screen(1)>: C<screen /dev/ttyUSB0 4800> (exit via C<Ctrl-A \>)
+
+This is Version 0.01 of this script.
+B<This is a beta version.>
+
 =head2 CONFIGURATION FILE
 
 The configuration file must be a Perl file which defines the following
@@ -35,6 +62,8 @@ The config file must return a true value (typically by ending with C<1;>).
 
 B<Warning:> The configuration file will be executed by this script.
 Only use files you trust!
+It is strongly recommended that you specify the configuration file name
+with an absolute pathname.
 
 The variable C<$NGSERLOG> (package C<main>) will be set before the config
 file is loaded; if the config file has a second purpose (such as a
@@ -107,8 +136,8 @@ or the empty string or C<undef> for no output.
 
 Either C<undef> for C<STDOUT>, or a filename for the output to be written
 to (append mode).
-You can send the process a C<SIGUSR1> and it will reopen this file.
-(Note that the script will still write status messages to the C<syslog>.)
+You can send the process a C<SIGUSR1> and it will reopen this file
+(useful for e.g. L<logrotate(8)>).
 
 =head3 C<$ON_START>
 

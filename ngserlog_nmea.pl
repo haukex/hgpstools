@@ -5,19 +5,63 @@ use 5.010; no feature 'switch';
 
 =head1 SYNOPSIS
 
-This is either a configuration file for F<ngserlog.pl> that handles NMEA
-data:
+This is both a configuration file for F<ngserlog.pl> that handles NMEA
+data, when used like this:
 
  ./ngserlog.pl ./ngserlog_nmea.pl
 
-Or, it is a daemon wrapper for the above, providing a daemon named
-C<ngserlog_nmea> - Please see F<Daemon_Control.md> for usage information!
+Or, when used like in the following example, it is a daemon wrapper for
+the above, providing a daemon named C<ngserlog_nmea>.
+Please see F<Daemon_Control.md> for usage information!
 
  ./ngserlog_nmea.pl get_init_file
 
 =head1 DESCRIPTION
 
-TODO: Document
+This script uses the variable C<$NGSERLOG> from F<ngserlog.pl> to detect
+whether it should function as a configuration file only or also
+as a L<Daemon::Control|Daemon::Control> script.
+
+=head2 CONFIGURATION
+
+The subroutine stored in C<$HANDLE_LINE> handles checking input format as
+well as manipulating the input lines (such as adding timestamps).
+
+The subroutine stored in C<$HANDLE_STATUS> handles the manipulation of
+status messages from the logger such as "start", "stop", "connect" and
+"disconnect". By default it outputs the messages with a timestamp (i.e.
+they are mixed in with the NMEA stream).
+
+=head2 DAEMON
+
+Please see F<Daemon_Control.md> for usage information!
+
+I<Note:> At the moment, L<Daemon::Control|Daemon::Control> does not
+support setting multiple group IDs. As a workaround, in order to access
+the serial port, currently the group C<dialout> is used. This means that
+files created will be owned by that group.
+(See also L<https://github.com/symkat/Daemon-Control/pull/60>.)
+
+There is an example L<logrotate(8)> configuration in the file
+F<ngserlog_nmea.logrotate> that you can either call directly via
+C<logrotate ngserlog_nmea.logrotate> or set up for daily exection via
+
+ sudo ln -s /home/pi/hgpstools/ngserlog_nmea.logrotate /etc/logrotate.d/ngserlog_nmea
+
+B<Warning:> L<logrotate(8)> will B<delete old log files> in this
+configuration, so by itself it is B<not> a solution for long-term
+data archival.
+
+=head2 NOTES
+
+You may want to disable L<gpsd(8)> to avoid conflicts:
+
+ sudo update-rc.d -f gpsd remove
+ sudo service gpsd stop
+
+If your GPS device is outputting binary data, try L<gpsctl(1)>:
+
+ sudo gpsctl -n /dev/ttyUSB0
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
@@ -54,7 +98,7 @@ our $GET_PORT = sub {
 
 use Time::HiRes qw/ gettimeofday /;
 our $HANDLE_LINE = sub {
-	s/^\x00*|\x00*$//g;
+	s/^\x00*|\x00*$//g; # strip NULs at beginning and end of lines (seems to happen sometimes)
 	return unless length $_;
 	my $err;
 	if (my ($str,$sum) = /^\$(.+?)(?:\*([A-Fa-f0-9]{2}))?$/) {

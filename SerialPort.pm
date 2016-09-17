@@ -48,7 +48,8 @@ B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
 This is Version 0.08 of this module.
-B<This is an alpha version,> in particular the L</tied_fh> interface.
+B<This is a beta version,>
+and the L</tied_fh> interface should be considered alpha stage.
 
 =head2 Notes
 

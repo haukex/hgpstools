@@ -48,6 +48,8 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
+#TODO: Update documentation for change from serlog.pl to ngserlog.pl
+
 use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
 use DateTime::TimeZone ();

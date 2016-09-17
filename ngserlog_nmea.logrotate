@@ -1,0 +1,13 @@
+
+/home/pi/ngserlog/nmea_data.txt {
+	missingok
+	notifempty
+	size 1M
+	rotate 1000
+	compress
+	delaycompress
+	postrotate
+		test -e /home/pi/ngserlog/nmea.pid && kill -USR1 `cat /home/pi/ngserlog/nmea.pid`
+	endscript
+}
+
