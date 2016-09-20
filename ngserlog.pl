@@ -23,7 +23,8 @@ C<user>, and if you're using C<rsyslog>, you can redirect them to another
 log file with the following example configuration file,
 F</etc/rsyslog.d/00-ngserlog.conf>:
 
- if $programname == 'ngserlog' then /var/log/ngserlog.log
+ $template ngserlogFormat,"%timegenerated% %pri-text% %syslogtag%%msg:::drop-last-lf%\n"
+ if $programname == 'ngserlog' then /var/log/ngserlog.log;ngserlogFormat
  & ~
 
 The process can be stopped cleanly via a C<SIGTERM> or C<SIGINT>
@@ -77,8 +78,9 @@ configuration file must leave C<@ARGV> empty when it is done!
 The output of the routines defined in the configuration file will be
 redirected: Anything C<print>ed will go to the output file if it is
 configured, and C<warn>ing and C<die> messages will go to the C<syslog>.
-The configuration file can also make use of the C<info> function provided
-by this script (package C<main>) to log to C<syslog> at "info" level.
+The configuration file can also make use of the C<info> and C<error>
+functions provided by this script (package C<main>) to log to C<syslog>
+at "info" level or to report recoverable errors, respectively.
 The configuration file should I<not> make use of Perl's one-argument
 C<select> function, should not install or change C<$SIG{__WARN__}> or
 C<$SIG{__DIE__}> handlers, and should not manipluate C<STDOUT> or C<STDERR>
@@ -150,6 +152,16 @@ first argument.
 This code will be executed once every time the serial port is opened.
 The serial port object is passed as the first argument.
 
+=head3 C<$ON_STOP>
+
+This code will be executed on a normal exit; B<however>, note that at this
+point it is also possible that the port has been disconnected already, or
+that this code may not be executed at all in the case of other errors. In
+other words, do not rely on this code always being able to talk to the
+serial port. Under normal circumstances, it should normally be called on
+C<SIGINT> and C<SIGTERM>.
+The serial port object is passed as the first argument.
+
 =head3 C<$SYSLOG_TO_STDERR>
 
 Setting this boolean option causes the syslog messages to be printed
@@ -192,6 +204,7 @@ our $HANDLE_STATUS = sub { $_.="\n" };
 our $OUTFILE = undef;
 our $ON_START = sub {};
 our $ON_CONNECT = sub {};
+our $ON_STOP = sub {};
 our $SYSLOG_TO_STDERR = 0;
 our $MAX_ERRORS = 100;
 # ###
@@ -290,6 +303,7 @@ MAINLOOP: while($run) {
 		$HANDLE_LINE->();
 		print $_ if length $_;
 	}
+	$ON_STOP->($port) unless $run;
 	$port->close or error("Couldn't close the port: $!");
 }
 info "Normal exit\n";
