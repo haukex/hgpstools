@@ -296,10 +296,13 @@ With one argument, sets the C<eof_fatal> setting and returns the new value.
 
 =head2 C<cont>
 
-This boolean setting, when enabled, causes L</read> to I<not> clear the
-read data buffer L</rxdata> on each call. This is useful, for example,
-if you only received partial data before a timeout, and want to continue
-reading the same data.
+Normally, L</read> clears the read data buffer L</rxdata> before reading
+from the port. This boolean setting, when enabled, causes L</read> to
+I<not> clear the read data buffer if one of the flags L</timed_out>,
+L</aborted>, or L</eof> is set. (This means that the read data buffer is
+always cleared if the previous read was successful.)
+This setting is useful, for example, if you only received partial data
+before a timeout, and want to continue reading the same data.
 
 When this setting is disabled (the default), L</read> clears the read data
 buffer L</rxdata> on each call.
@@ -441,7 +444,8 @@ C<read> to die!
 sub read {  ## no critic (ProhibitExcessComplexity)
 	my ($self, $bytes) = @_;
 	croak "read: port is closed" unless $self->{hnd};
-	$self->{rxdata} = '' unless $self->{cont};
+	$self->{rxdata} = '' unless $self->{cont}
+		&& ( $self->{timed_out} || $self->{eof} || $self->{aborted} );
 	$self->{timed_out} = 0; $self->{eof} = 0; $self->{aborted} = 0;
 	$self->{abort} = 0;
 	my $remain_s = $self->{timeout_s};
