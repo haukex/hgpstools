@@ -116,6 +116,10 @@ setting C<cont> is strongly recommended. Of course, if this option is
 set, L</$HANDLE_LINE> won't be passed lines, it will be passed records
 of the requested size.
 
+Note that you may change this setting from the L</$HANDLE_LINE> function,
+in which case the next read and the corresponding call to L</$HANDLE_LINE>
+will read resp. be called with the updated number of bytes.
+
 =head3 C<$HANDLE_LINE>
 
 This function should take the currently received line in the C<$_>
