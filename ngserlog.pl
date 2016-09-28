@@ -156,6 +156,13 @@ first argument.
 This code will be executed once every time the serial port is opened.
 The serial port object is passed as the first argument.
 
+This is also a good place to set C<$/>, if desired.
+
+=head3 C<$ON_TIMEOUT>
+
+This code will be executed every time a read from the serial port times
+out. The serial port object is passed as the first argument.
+
 =head3 C<$ON_STOP>
 
 This code will be executed on a normal exit; B<however>, note that at this
@@ -208,6 +215,7 @@ our $HANDLE_STATUS = sub { $_.="\n" };
 our $OUTFILE = undef;
 our $ON_START = sub {};
 our $ON_CONNECT = sub {};
+our $ON_TIMEOUT = sub {};
 our $ON_STOP = sub {};
 our $SYSLOG_TO_STDERR = 0;
 our $MAX_ERRORS = 100;
@@ -231,7 +239,12 @@ pod2usage if @ARGV;
 
 my $syslogopts = $SYSLOG_TO_STDERR ? 'ndelay,pid,perror' : 'ndelay,pid';
 openlog('ngserlog',$syslogopts,'user');
-sub info { chomp(my $m = shift); syslog('info','Info: %s',$m); return 1 }
+sub info {
+	chomp(my $msg = shift);
+	warn "Too many arguments to info()\n" if @_;
+	syslog('info','Info: %s',$msg);
+	return;
+}
 local $SIG{__WARN__} = sub { chomp(my $m = shift); syslog('warning','Warn: %s',$m) };
 local $SIG{__DIE__}  = sub { chomp(my $m = shift); syslog('err','Error: %s',$m) };
 
@@ -298,7 +311,7 @@ MAINLOOP: while($run) {
 		if (!defined $line) {
 			if ($port->eof) { sleep 1; last READLOOP }; # likely unplug
 			if ($port->aborted) { $run=0; last READLOOP; }
-			if ($port->timed_out) { next READLOOP; }
+			if ($port->timed_out) { $ON_TIMEOUT->($port); next READLOOP; }
 			# The above statements should handle all the cases in which
 			# read/readline returns undef, so this should be unreachable.
 			die "Unexpected read of undef";
@@ -318,7 +331,8 @@ exit;
 # ### Subs ###
 
 sub error {
-	my ($msg) = @_;
+	chomp(my $msg = shift);
+	warn "Too many arguments to error()\n" if @_;
 	state $errs = 0;
 	if (++$errs>=$MAX_ERRORS)
 		{ die "$msg; too many errors ($errs), aborting\n" }
