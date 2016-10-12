@@ -89,9 +89,11 @@ configuration file is being loaded.
 
 B<Warning in regards to C<$/>> (the input record separator): The
 architecture of the callbacks in this logger require any changes to C<$/>
-to be made globally instead of via C<local> (the best place to do so
-is L</$ON_CONNECT>). This global change may affect other pieces of code,
-for example if any other code reads from files!
+to be made globally instead of via C<local>. This global change may affect
+other pieces of code, for example if any other code reads from files!
+Therefore, it is strongly recommended to use L<SerialPort|SerialPort>'s
+C<irs> option instead! (Note that if setting C<$/> globally is still
+necessary for some reason, L</$ON_CONNECT> is the best place to do so.)
 
 =head3 C<$GET_PORT>
 
@@ -161,9 +163,6 @@ first argument.
 
 This code will be executed once every time the serial port is opened.
 The serial port object is passed as the first argument.
-
-This is also a good place to set C<$/>, if desired. However, see the
-warning about using C<$/> in L</CONFIGURATION FILE>.
 
 =head3 C<$ON_TIMEOUT>
 

@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -23,7 +23,6 @@ SerialPort - Perl extension for talking to a serial port in *NIX
  	mode=>'19200,8,n,1', timeout_s=>2 );
  $port->print("Hello, World!\x0D\x0A");
  print "<< \"".$port->read(5)."\"\n";  # read 5 bytes
- local $/ = "\x0D\x0A";  # input record separator
  while ( defined($_ = $port->readline) ) {
  	chomp;
  	print "<< \"$_\"\n";
@@ -32,6 +31,7 @@ SerialPort - Perl extension for talking to a serial port in *NIX
  print "Read timed out\n" if $port->timed_out;
  my $tied = $port->tied_fh;
  print $tied "Hello, World!\x0D\x0A";
+ local $/ = "\x0D\x0A";         # input record separator
  chomp( my @lines = <$tied> );  # read until timeout / eof
  print "<< \"$_\"\n" for @lines;
  close $tied or die $!;
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.09 of this module.
+This is Version 0.10 of this module.
 B<This is a beta version,>
 and the L</tied_fh> interface should be considered alpha stage.
 
@@ -104,14 +104,14 @@ C<< mode => "19200,8,n,1" >> specifies the mode string
 (see C<set_mode> in L<IO::Termios>);
 C<< stty => ['raw','-echo'] >> is a simple helper for L</stty>;
 and the additional options are described in their respective sections:
-L</timeout_s>, L</flexle>, L</chomp>, L</eof_fatal>, L</cont>, and L</debug>.
+L</timeout_s>, L</flexle>, L</chomp>, L</irs>, L</eof_fatal>, L</cont>, and L</debug>.
 The default timeout is currently 2 seconds.
 
 =cut
 
 our $DEFAULT_TIMEOUT_S = 2;
 
-my %KNOWN_OPTS_NEW = map {$_=>1} qw/ mode timeout_s stty flexle chomp eof_fatal cont debug /;
+my %KNOWN_OPTS_NEW = map {$_=>1} qw/ mode timeout_s stty flexle chomp irs eof_fatal cont debug /;
 sub new {
 	my ($class, $dev, %opts) = @_;
 	croak "new: no device specified" unless defined $dev;
@@ -127,7 +127,7 @@ sub new {
 			rxdata=>undef,
 			timed_out=>0, eof=>0,
 			abort=>0,
-			flexle=>$opts{flexle}, chomp=>$opts{chomp},
+			flexle=>$opts{flexle}, chomp=>$opts{chomp}, irs=>$opts{irs},
 			prev_was_cr=>0, # keeps state for "read"
 		}, $class;
 	lock_ref_keys $self; # prevent typos
@@ -287,6 +287,17 @@ See L</Readline Mode> for more details.
 With no arguments, returns the current C<chomp> setting.
 With one argument, sets the C<chomp> setting and returns the new value.
 
+=head2 C<irs>
+
+When set, this option overrides the setting of the input record separator
+(IRS) C<$/> when L</read>ing lines in L</Readline Mode>. When this is not
+set, i.e. its value is C<undef>, the normal value of C<$/> takes effect.
+Note that this setting is ignored when L</flexle> is enabled.
+See L</Readline Mode> for more details.
+
+With no arguments, returns the current C<irs> setting.
+With one argument, sets the C<irs> setting and returns the new value.
+
 =head2 C<eof_fatal>
 
 This boolean setting, when enabled, causes L</read> to throw an exception
@@ -321,7 +332,7 @@ With one argument, sets the C<debug> setting and returns the new value.
 
 =cut
 
-my %setters = map {$_=>$_} qw/flexle chomp eof_fatal cont debug/;
+my %setters = map {$_=>$_} qw/flexle chomp irs eof_fatal cont debug/;
 while (my ($func,$field) = each %setters) {
 	my $sub = sub {
 		my $self = shift;
@@ -438,9 +449,10 @@ L</flexle> with non-L</flexle> calls, the latter including L</read>ing
 specific numbers of bytes, this will cause leftover LF characters to appear
 at the beginning of strings returned from non-L</flexle> calls.
 
-If L</flexle> is off, the line ending is the input record separator C<$/>,
-and if L</chomp> is enabled, the line ending is removed from the string.
-B<Note> that the special C<$/> functions "paragraph mode", "slurp mode",
+If L</flexle> is off, the line ending is either the value of the L</irs>
+option if it is set, otherwise it is Perl's input record separator (IRS)
+C<$/>. If L</chomp> is enabled, the line ending is removed from the string.
+B<Note> that the special IRS functions "paragraph mode", "slurp mode",
 and "record mode" are I<not> supported and will currently cause
 C<read> to die!
 
@@ -455,6 +467,15 @@ sub read {  ## no critic (ProhibitExcessComplexity)
 	if ($self->{abort}) {
 		$self->_debug(2, "Not doing read b/c abort flag is still set");
 		return }
+	# Figure out IRS stuff now, so we don't need to do it on each byte,
+	# even if we're not actually going to be using it.
+	my $irs = $self->{irs};
+	if (!defined $irs) {
+		croak "read: IRS slurp mode unsupported" if !defined($/);
+		$irs = $/ }
+	croak "read: IRS paragraph mode unsupported" if !length($irs);
+	croak "read: IRS record mode unsupported (use read(\$bytecount) instead)" if ref($irs);
+	my $lirs = length($irs);
 	my $remain_s = $self->{timeout_s};
 	$self->_debug(2, "Attempting read, timeout ",$remain_s," s");
 	my $t0 = [gettimeofday];
@@ -483,13 +504,10 @@ sub read {  ## no critic (ProhibitExcessComplexity)
 					else
 						{ $self->{rxdata} .= $in }
 				}
-				else { # normal line endings (IRS $/)
+				else { # normal line endings (IRS)
 					$self->{rxdata} .= $in;
-					croak "read: \$/ slurp mode unsupported" if !defined($/);
-					croak "read: \$/ paragraph mode unsupported" if !length($/);
-					croak "read: \$/ record mode unsupported (use read(\$bytecount) instead)" if ref($/);
-					if (substr($self->{rxdata},-length($/)) eq $/) {
-						CORE::chomp($self->{rxdata}) if $self->{chomp};
+					if (substr($self->{rxdata},-$lirs) eq $irs) {
+						substr($self->{rxdata},-$lirs,$lirs,'') if $self->{chomp};
 						$done=1 }
 				}
 			}
