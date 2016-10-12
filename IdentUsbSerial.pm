@@ -37,6 +37,12 @@ our @EXPORT_OK = qw/ident_usbser/;
 use Path::Class qw/dir file/;
 use Carp;
 
+use Data::Dumper ();
+sub _dump {
+	return Data::Dumper->new([shift])->Terse(1)->Indent(0)->Useqq(1)
+		->Purity(1)->Quotekeys(0)->Sortkeys(1)->Dump;
+}
+
 =head2 C<ident_usbser>
 
 Returns a list of hashrefs containing information on all of the C<usb-serial> TTYs.
@@ -71,13 +77,13 @@ sub ident_usbser {
 			map { my $f = $usbtty->parent->parent ->file($_);
 				-e $f ? scalar $f->slurp(chomp=>1) : undef }
 					qw/idVendor idProduct serial/;
-		$args{debug} and warn "DEBUG ident_usbser: vend=\"".($vend//'')
-			."\", prod=\"".($prod//'')."\", ser=\"".($ser//'')."\"\n";
+		my $record = { devtty=>"$devtty", usbtty=>"$usbtty",
+			vend=>$vend, prod=>$prod, ser=>$ser };
+		$args{debug} and warn "DEBUG ident_usbser: "._dump($record)."\n";
 		next if defined $args{vend} && lc $vend ne lc $args{vend};
 		next if defined $args{prod} && lc $prod ne lc $args{prod};
 		next if defined $args{ser} && $ser ne $args{ser};
-		push @usbsers, { devtty=>"$devtty", usbtty=>"$usbtty",
-			vend=>$vend, prod=>$prod, ser=>$ser };
+		push @usbsers, $record;
 	}
 	@usbsers = sort { $$a{usbtty} cmp $$b{usbtty} } @usbsers;
 	return @usbsers;
