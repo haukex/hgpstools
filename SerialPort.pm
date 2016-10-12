@@ -23,7 +23,7 @@ SerialPort - Perl extension for talking to a serial port in *NIX
  	mode=>'19200,8,n,1', timeout_s=>2 );
  $port->print("Hello, World!\x0D\x0A");
  print "<< \"".$port->read(5)."\"\n";  # read 5 bytes
- $/ = "\x0D\x0A";  # input record separator
+ local $/ = "\x0D\x0A";  # input record separator
  while ( defined($_ = $port->readline) ) {
  	chomp;
  	print "<< \"$_\"\n";

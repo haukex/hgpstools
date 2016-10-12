@@ -87,6 +87,12 @@ C<$SIG{__DIE__}> handlers, and should not manipluate C<STDOUT> or C<STDERR>
 in any other way! Note these redirects are I<not> yet active while the
 configuration file is being loaded.
 
+B<Warning in regards to C<$/>> (the input record separator): The
+architecture of the callbacks in this logger require any changes to C<$/>
+to be made globally instead of via C<local> (the best place to do so
+is L</$ON_CONNECT>). This global change may affect other pieces of code,
+for example if any other code reads from files!
+
 =head3 C<$GET_PORT>
 
 This code reference should return an opened L<SerialPort|SerialPort>
@@ -156,7 +162,8 @@ first argument.
 This code will be executed once every time the serial port is opened.
 The serial port object is passed as the first argument.
 
-This is also a good place to set C<$/>, if desired.
+This is also a good place to set C<$/>, if desired. However, see the
+warning about using C<$/> in L</CONFIGURATION FILE>.
 
 =head3 C<$ON_TIMEOUT>
 
