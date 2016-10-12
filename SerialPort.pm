@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.08 of this module.
+This is Version 0.09 of this module.
 B<This is a beta version,>
 and the L</tied_fh> interface should be considered alpha stage.
 
@@ -125,7 +125,7 @@ sub new {
 			cont=>$opts{cont},
 			debug=>$opts{debug}||0,
 			rxdata=>undef,
-			timed_out=>0, eof=>0, aborted=>0,
+			timed_out=>0, eof=>0,
 			abort=>0,
 			flexle=>$opts{flexle}, chomp=>$opts{chomp},
 			prev_was_cr=>0, # keeps state for "read"
@@ -193,8 +193,8 @@ Note that the modes C<'raw', '-echo'> can be very useful on serial ports.
 
 If this function is not used, L<IO::Stty|IO::Stty> is not required to
 be installed. To detect whether L<IO::Stty|IO::Stty> is installed at
-compile time, instead of having the failure be at runtime, add
-C<use IO::Stty ();> to the top of your script.
+compile time, instead of having the failure happen when L</open>ing the
+port, add C<use IO::Stty ();> to the top of your script.
 
 =cut
 
@@ -242,21 +242,22 @@ See L</Notes> for some more notes on EOF.
 
 =head2 C<aborted>
 
-Returns whether or not the last call to L</read> returned due to a
-call to L</abort>.
+Returns the status of the flag set by calling L</abort>.
+This flag is I<not> cleared automatically, you must use L</unabort>.
+Please see L</abort> and L</read> for details!
 
 =cut
 
-my %getters = ( handle=>'hnd',
-	map {$_=>$_} qw/dev rxdata timed_out eof aborted/);
+my %getters = ( handle=>'hnd', aborted=>'abort',
+	map {$_=>$_} qw/dev rxdata timed_out eof/);
 while (my ($func,$field) = each %getters) {
-    my $sub = sub {
-        my $self = shift;
+	my $sub = sub {
+		my $self = shift;
 		carp "too many arguments to $func" if @_;
-        return $self->{$field};
-    };
-    no strict 'refs';  ## no critic (ProhibitNoStrict)
-    *{__PACKAGE__."::$func"} = $sub;
+		return $self->{$field};
+	};
+	no strict 'refs';  ## no critic (ProhibitNoStrict)
+	*{__PACKAGE__."::$func"} = $sub;
 }
 
 =head2 C<is_open>
@@ -322,17 +323,17 @@ With one argument, sets the C<debug> setting and returns the new value.
 
 my %setters = map {$_=>$_} qw/flexle chomp eof_fatal cont debug/;
 while (my ($func,$field) = each %setters) {
-    my $sub = sub {
-        my $self = shift;
-        if (@_) {
+	my $sub = sub {
+		my $self = shift;
+		if (@_) {
 			my $newval = shift;
 			carp "too many arguments to $func" if @_;
 			$self->{$field} = $newval;
 		}
-        return $self->{$field};
-    };
-    no strict 'refs';  ## no critic (ProhibitNoStrict)
-    *{__PACKAGE__."::$func"} = $sub;
+		return $self->{$field};
+	};
+	no strict 'refs';  ## no critic (ProhibitNoStrict)
+	*{__PACKAGE__."::$func"} = $sub;
 }
 
 =head2 C<timeout_s>
@@ -412,10 +413,14 @@ Unlike Perl's C<read> and C<sysread>, this function always returns either
 the requested number of bytes, or nothing (C<undef> / the empty list)
 on timeout, L</abort>, or at end-of-file (EOF).
 Use L</timed_out>, L</aborted>, and L</eof> to find out the cause.
-Note that each call to C<read> resets these flags.
+Note that each call to C<read> resets these flags, I<except> L</aborted>,
+which must be cleared by the user with a call to L</unabort>.
 If the option L</eof_fatal> is set, an EOF is a fatal error.
 See L</Notes> for some more notes on EOF.
 In any case, the (partial) receive buffer can be accessed with L</rxdata>.
+
+B<Note> that if the L</abort> flag is set, L</read> returns immediately!
+See L</abort> for more details.
 
 =head3 Readline Mode
 
@@ -445,9 +450,11 @@ sub read {  ## no critic (ProhibitExcessComplexity)
 	my ($self, $bytes) = @_;
 	croak "read: port is closed" unless $self->{hnd};
 	$self->{rxdata} = '' unless $self->{cont}
-		&& ( $self->{timed_out} || $self->{eof} || $self->{aborted} );
-	$self->{timed_out} = 0; $self->{eof} = 0; $self->{aborted} = 0;
-	$self->{abort} = 0;
+		&& ( $self->{timed_out} || $self->{eof} || $self->{abort} );
+	$self->{timed_out} = 0; $self->{eof} = 0;
+	if ($self->{abort}) {
+		$self->_debug(2, "Not doing read b/c abort flag is still set");
+		return }
 	my $remain_s = $self->{timeout_s};
 	$self->_debug(2, "Attempting read, timeout ",$remain_s," s");
 	my $t0 = [gettimeofday];
@@ -498,7 +505,6 @@ sub read {  ## no critic (ProhibitExcessComplexity)
 			$remain_s = $self->{timeout_s} - $elapsed_s;
 			if ($self->{abort}) {
 				$self->_debug(1, "Aborted read after ",$elapsed_s," s");
-				$self->{aborted} = 1;
 				return }
 			if ($remain_s <= 0) {
 				$self->_debug(1, "Timeout read after ",$elapsed_s," s");
@@ -514,29 +520,53 @@ sub read {  ## no critic (ProhibitExcessComplexity)
 
 =head2 C<abort>
 
-Because a signal usually causes Perl's C<select> to return immediately,
-you can call this function from a signal handler, in which case the
-L</read> call will return immediately.
-Note that Perl's C<select> documentation says: "whether select gets
-restarted after signals (say, SIGALRM) is implementation-dependent".
-For example, you can use this to implement a graceful exit, as shown below.
-See also L</aborted>.
+This function is intended to be called from a signal handler and should
+cause L</read> to return immediately (the only exception is the case if
+your Perl's C<select> is not interrupted by signals*). Whether or not you
+use L</read>, the status of this flag can be checked via L</aborted>.
 
- local $SIG{INT} = sub { $port->abort };
- my $rd = $port->readline;
- if ($port->aborted) {
-     $port->close;
-     # ...other cleanup activities...
-     exit;
+B<Note> that this flag is B<not> cleared automatically. If you wish to
+continue L</read>ing from the port, you B<must> clear the flag with a call
+to L</unabort>, otherwise, the next call(s) to read L</read> will return
+immediately!
+
+You can use this to implement a graceful exit, for example:
+
+ $port->write("start sending me data\x0D");
+ local $SIG{INT} = sub { $port->abort };  # catch Ctrl-C
+ while (1) {
+     my $line = $port->readline;
+     if (!defined($line)) {
+         last if $port->aborted;
+         ...; # handle other error cases here (timeout etc.)
+     }
+     else { ... } # read was successful
  }
+ $port->unabort;  # necessary in case you want to continue reading
+ $port->write("stop sending me data\x0D");
+ ...; # other cleanup activities (e.g. read response to stop command)
+ $port->close;
+
+* Note that Perl's C<select> documentation says: "whether select gets
+restarted after signals (say, SIGALRM) is implementation-dependent".
+See also L<perlport>.
 
 =cut
 
 sub abort { shift->{abort}=1; return }
 
+=head2 C<unabort>
+
+Clears the L</aborted> flag which is set by L</abort>.
+Please see L</abort> and L</read> for details.
+
+=cut
+
+sub unabort { shift->{abort}=0; return }
+
 =head2 C<close>
 
-Closes the port.
+Closes the port and resets the internal state.
 
 =cut
 
@@ -547,7 +577,8 @@ sub close {  ## no critic (ProhibitAmbiguousNames)
 	$self->{sel} = undef;
 	$self->{hnd} = undef;
 	$self->{rxdata} = undef;
-	$self->{timed_out} = 0; $self->{eof} = 0; $self->{aborted} = 0;
+	$self->{timed_out} = 0; $self->{eof} = 0;
+	$self->{abort} = 0;
 	return $hnd->close;
 }
 

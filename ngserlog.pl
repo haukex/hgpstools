@@ -170,7 +170,9 @@ point it is also possible that the port has been disconnected already, or
 that this code may not be executed at all in the case of other errors. In
 other words, do not rely on this code always being able to talk to the
 serial port. Under normal circumstances, it should normally be called on
-C<SIGINT> and C<SIGTERM>.
+C<SIGINT> and C<SIGTERM> (i.e. read was aborted), in this case the
+C<unabort> method will have been called before this handler is called,
+so that the handler may continue to talk to the port.
 The serial port object is passed as the first argument.
 
 =head3 C<$SYSLOG_TO_STDERR>
@@ -227,7 +229,7 @@ use Sys::Syslog qw/openlog syslog closelog/;
 use SerialPort;
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
-sub VERSION_MESSAGE { say {shift} q$ngserlog.pl v0.01$; return }
+sub VERSION_MESSAGE { say {shift} q$ngserlog.pl v0.02$; return }
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 getopts('', \my %opts) or pod2usage;
 pod2usage unless @ARGV;
@@ -277,7 +279,7 @@ my $discon_informed = 0; # only inform once per disconnect event
 my $on_start_run = 0;
 info "Entering main loop...\n";
 $do_status->("START");
-MAINLOOP: while($run) {
+MAINLOOP: while ($run) {
 	my $port;
 	eval {
 		$port = $GET_PORT->();
@@ -297,6 +299,8 @@ MAINLOOP: while($run) {
 	}
 	$discon_informed = 0;
 	info "Device available, conntected to serial port\n";
+	local $SIG{INT}  = sub { info "Caught SIGINT, aborting...\n";  $port->abort; $run=0 };
+	local $SIG{TERM} = sub { info "Caught SIGTERM, aborting...\n"; $port->abort; $run=0 };
 	$do_status->("CONNECT");
 	if (!$on_start_run) {
 		$ON_START->($port);
@@ -304,9 +308,7 @@ MAINLOOP: while($run) {
 	}
 	$ON_CONNECT->($port);
 	$port->eof_fatal(0);
-	local $SIG{INT}  = sub { info "Caught SIGINT, stopping...\n";  $port->abort; $run=0 };
-	local $SIG{TERM} = sub { info "Caught SIGTERM, stopping...\n"; $port->abort; $run=0 };
-	READLOOP: while($run) {
+	READLOOP: while ($run) {
 		my $line = $port->read($READ_SIZE);
 		if (!defined $line) {
 			if ($port->eof) { sleep 1; last READLOOP }; # likely unplug
@@ -320,7 +322,10 @@ MAINLOOP: while($run) {
 		$HANDLE_LINE->();
 		print $_ if length $_;
 	}
-	$ON_STOP->($port) unless $run;
+	if (!$run) {
+		$port->unabort; # so the following handler can talk to the port
+		$ON_STOP->($port);
+	}
 	$port->close or error("Couldn't close the port: $!");
 }
 info "Normal exit\n";
