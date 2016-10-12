@@ -3,7 +3,7 @@ package IdentUsbSerial;
 use warnings;
 use strict;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -26,7 +26,7 @@ This makes a lot of assumptions about the structure of the F</sys> filesystem.
 This works fine on my Raspberry Pi with the current Raspbian, but of course
 this may not work on other systems because I haven't tested it there yet.
 
-This is Version 0.02 of this module.
+This is Version 0.03 of this module.
 B<This is an alpha version.>
 
 =cut
@@ -47,10 +47,16 @@ and C<ser> is matched case-sensitively against the file F<serial>.
 If any of the files F<idVendor>, F<idProduct>, or F<serial> don't exist, C<undef> is returned.
 The returned list is sorted by the C<usbtty> field.
 
+You may also supply an argument of C<< debug=>1 >> and all found devices
+will be listed via C<warn>.
+
 =cut
 
+my %IDENT_USBSER_KNOWN_ARGS = map {$_=>1} qw/ vend prod ser debug /;
 sub ident_usbser {
 	my %args = @_;
+	$IDENT_USBSER_KNOWN_ARGS{$_} or croak "ident_usbser unknown argument \"$_\"" for keys %args;
+	local $/ = "\n"; # just in case the caller messed with this
 	my $usdrv = dir('/sys/bus/usb-serial/drivers/');
 	my @usbsers;
 	for my $systty ( dir('/sys/class/tty/')->children ) {
@@ -65,6 +71,8 @@ sub ident_usbser {
 			map { my $f = $usbtty->parent->parent ->file($_);
 				-e $f ? scalar $f->slurp(chomp=>1) : undef }
 					qw/idVendor idProduct serial/;
+		$args{debug} and warn "DEBUG ident_usbser: vend=\"".($vend//'')
+			."\", prod=\"".($prod//'')."\", ser=\"".($ser//'')."\"\n";
 		next if defined $args{vend} && lc $vend ne lc $args{vend};
 		next if defined $args{prod} && lc $prod ne lc $args{prod};
 		next if defined $args{ser} && $ser ne $args{ser};
