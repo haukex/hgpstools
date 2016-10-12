@@ -87,13 +87,14 @@ C<$SIG{__DIE__}> handlers, and should not manipluate C<STDOUT> or C<STDERR>
 in any other way! Note these redirects are I<not> yet active while the
 configuration file is being loaded.
 
-B<Warning in regards to C<$/>> (the input record separator): The
-architecture of the callbacks in this logger require any changes to C<$/>
-to be made globally instead of via C<local>. This global change may affect
-other pieces of code, for example if any other code reads from files!
-Therefore, it is strongly recommended to use L<SerialPort|SerialPort>'s
-C<irs> option instead! (Note that if setting C<$/> globally is still
-necessary for some reason, L</$ON_CONNECT> is the best place to do so.)
+B<Warning in regards to C<$/>> (the input record separator): If you want
+to read lines with a nonstandard input record separator, it is strongly
+recommended to use L<SerialPort|SerialPort>'s C<irs> option instead of
+Perl's C<$/> variable. The reason is that, with the architecture of the
+callbacks in this script, such changes to C<$/> would have to be made
+globally, which may affect other pieces of code!
+(If for some reason setting C<$/> globally is still necessary,
+L</$ON_CONNECT> is the best place to do so.)
 
 =head3 C<$GET_PORT>
 
