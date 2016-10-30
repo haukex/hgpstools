@@ -46,7 +46,7 @@ There is an example L<logrotate(8)> configuration in the file
 F<ngserlog_nmea.logrotate> that you can either call directly via
 C<logrotate ngserlog_nmea.logrotate> or set up for daily exection via
 
- sudo ln -s /home/pi/hgpstools/ngserlog_nmea.logrotate /etc/logrotate.d/ngserlog_nmea
+ sudo ln -s /home/pi/hgpstools/serloggers/ngserlog_nmea.logrotate /etc/logrotate.d/ngserlog_nmea
 
 B<Warning:> L<logrotate(8)> will B<delete old log files> in this
 configuration, so by itself it is B<not> a solution for long-term
