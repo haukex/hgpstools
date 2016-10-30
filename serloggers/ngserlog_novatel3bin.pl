@@ -34,7 +34,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use IO::Stty (); # because we use "stty" option below
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'09d7', prod=>'0100');
@@ -44,7 +43,7 @@ our $GET_PORT = sub {
 	return unless -e $devtty;
 	info("Opening port $devtty for Novatel USB3");
 	return SerialPort->open($devtty, mode=>'115200,8,n,1',
-		stty=>['raw','-echo'], timeout_s=>3, flexle=>0, chomp=>0, cont=>1 );
+		timeout_s=>3, flexle=>0, chomp=>0, cont=>1 );
 };
 
 use Digest::CRC ();

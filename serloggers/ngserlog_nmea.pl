@@ -84,7 +84,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use IO::Stty (); # because we use "stty" option below
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'067b', prod=>'2303'); # Navilock NL-302U
@@ -94,7 +93,7 @@ our $GET_PORT = sub {
 	return unless -e $devtty;
 	info("Opening port $devtty for NEMA data");
 	return SerialPort->open($devtty, mode=>'4800,8,n,1',
-		stty=>['raw','-echo'], flexle=>1, timeout_s=>3 );
+		flexle=>1, timeout_s=>3 );
 };
 
 use Time::HiRes qw/ gettimeofday /;

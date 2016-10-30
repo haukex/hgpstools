@@ -42,7 +42,6 @@ die "You need to set the CPT_FTDI_PORT environment variable, "
 	unless length $ENV{CPT_FTDI_PORT} && $ENV{CPT_FTDI_PORT}=~/^port([0-3])$/i;
 my $FTDIPORT = $1;
 
-use IO::Stty (); # because we use "stty" option below
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'0403', prod=>'6011');
@@ -51,7 +50,7 @@ our $GET_PORT = sub {
 	my $devtty = $devs[$FTDIPORT]{devtty};
 	return unless -e $devtty;
 	info("Opening port $devtty for CPT6100 Port $FTDIPORT");
-	return SerialPort->open($devtty, mode=>'9600,8,n,1', stty=>['raw','-echo'],
+	return SerialPort->open($devtty, mode=>'9600,8,n,1',
 		timeout_s=>2, flexle=>0, irs=>"\x0D\x0A", chomp=>1 );
 };
 
