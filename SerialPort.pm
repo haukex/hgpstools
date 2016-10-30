@@ -3,7 +3,7 @@ package SerialPort;
 use warnings;
 use strict;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -47,7 +47,7 @@ other return values are as documented below.
 B<Note:> The port is not automatically closed when the object goes out of
 scope, you must explicitly call L</close>.
 
-This is Version 0.10 of this module.
+This is Version 0.11 of this module.
 B<This is a beta version,>
 and the L</tied_fh> interface should be considered alpha stage.
 
@@ -80,6 +80,7 @@ use Fcntl qw/:DEFAULT/;
 use Time::HiRes qw/gettimeofday tv_interval/;
 use IO::Select ();
 use IO::Termios (); # on RPi, can be installed via CPAN + local::lib
+use IO::Stty ();
 use Data::Dumper (); # for debugging
 
 sub _dump {
@@ -100,16 +101,35 @@ see L</open>. This is a class method, e.g. C<< SerialPort->new(...) >>.
 
 First argument must be the filename of the device (e.g. F</dev/ttyUSB0>),
 followed by options as name/value pairs:
+
+=over
+
+=item *
+
 C<< mode => "19200,8,n,1" >> specifies the mode string
-(see C<set_mode> in L<IO::Termios>);
-C<< stty => ['raw','-echo'] >> is a simple helper for L</stty>;
+(see C<set_mode> in L<IO::Termios>)
+
+=item *
+
+C<< stty => [...] >> specifies the arguments that L</stty> is called with
+upon L</open>. This defaults to C<['raw','-echo']>. If you specify a custom
+value here, it will override the default value, so if you need
+C<'raw','-echo'>, you'll have to specify those in the list yourself. If you
+don't want to do an C<stty> at all, pass an empty arrayref C<[]> here.
+
+=item *
+
 and the additional options are described in their respective sections:
 L</timeout_s>, L</flexle>, L</chomp>, L</irs>, L</eof_fatal>, L</cont>, and L</debug>.
+
+=back
+
 The default timeout is currently 2 seconds.
 
 =cut
 
 our $DEFAULT_TIMEOUT_S = 2;
+our $DEFAULT_STTY = ['raw','-echo'];
 
 my %KNOWN_OPTS_NEW = map {$_=>1} qw/ mode timeout_s stty flexle chomp irs eof_fatal cont debug /;
 sub new {
@@ -118,7 +138,8 @@ sub new {
 	$KNOWN_OPTS_NEW{$_} or croak "new: bad option \"$_\"" for keys %opts;
 	my $self = bless {
 			dev=>$dev,
-			open_mode=>$opts{mode}, open_stty=>$opts{stty},
+			open_mode=>$opts{mode},
+			open_stty=> defined $opts{stty} ? $opts{stty} : $DEFAULT_STTY,
 			hnd=>undef, sel=>undef, # set later
 			timeout_s=>$DEFAULT_TIMEOUT_S, # set & validated via setter below
 			eof_fatal=>$opts{eof_fatal},
@@ -187,27 +208,18 @@ sub reopen {
 
 =head2 C<stty>
 
-This attempts to load L<IO::Stty|IO::Stty> and use its C<stty> method
-on this object's handle with the mode arguments given to this method.
-Note that the modes C<'raw', '-echo'> can be very useful on serial ports.
-
-If this function is not used, L<IO::Stty|IO::Stty> is not required to
-be installed. To detect whether L<IO::Stty|IO::Stty> is installed at
-compile time, instead of having the failure happen when L</open>ing the
-port, add C<use IO::Stty ();> to the top of your script.
+This calls the C<stty> function from L<IO::Stty|IO::Stty> on this object's
+handle with the mode arguments given to this method. If there are no mode
+arguments, C<stty> is not called.
 
 =cut
 
-our $IO_STTY_LOADED;
 sub stty {
 	my ($self,@mode) = @_;
 	croak "stty: port is closed" unless $self->{hnd};
-	if (!$IO_STTY_LOADED) {
-		eval "use IO::Stty; 1"  ## no critic (ProhibitStringyEval)
-			or croak "Failed to load IO::Stty: $@";
-		$IO_STTY_LOADED = 1;
-		$self->_debug(2, "Successfully loaded IO::Stty");
-	}
+	if (!@mode) {
+		$self->_debug(2, "Not calling stty b/c mode is empty");
+		return }
 	$self->_debug(2, "Calling stty ",join ', ', map {"\"$_\""} @mode);
 	return IO::Stty::stty($self->{hnd}, @mode);
 }
