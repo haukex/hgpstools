@@ -8,13 +8,13 @@ use 5.010; no feature 'switch';
 This is both a configuration file for F<ngserlog.pl> that handles NMEA
 data, when used like this:
 
- ./ngserlog.pl ./ngserlog_nmea.pl
+ ./ngserlog.pl serloggers/ngserlog_nmea.pl
 
 Or, when used like in the following example, it is a daemon wrapper for
 the above, providing a daemon named C<ngserlog_nmea>.
 Please see F<Daemon_Control.md> for usage information!
 
- ./ngserlog_nmea.pl get_init_file
+ serloggers/ngserlog_nmea.pl get_init_file
 
 =head1 DESCRIPTION
 
@@ -46,7 +46,7 @@ There is an example L<logrotate(8)> configuration in the file
 F<ngserlog_nmea.logrotate> that you can either call directly via
 C<logrotate ngserlog_nmea.logrotate> or set up for daily exection via
 
- sudo ln -s /home/pi/hgpstools/ngserlog_nmea.logrotate /etc/logrotate.d/ngserlog_nmea
+ sudo ln -s /home/pi/hgpstools/serloggers/ngserlog_nmea.logrotate /etc/logrotate.d/ngserlog_nmea
 
 B<Warning:> L<logrotate(8)> will B<delete old log files> in this
 configuration, so by itself it is B<not> a solution for long-term
@@ -84,16 +84,16 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use IO::Stty (); # because we use "stty" option below
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'067b', prod=>'2303'); # Navilock NL-302U
 	return unless @devs;
+	warn "Multiple devices found, picking the first\n" if @devs>1;
 	my $devtty = $devs[0]{devtty};
 	return unless -e $devtty;
 	info("Opening port $devtty for NEMA data");
 	return SerialPort->open($devtty, mode=>'4800,8,n,1',
-		stty=>['raw','-echo'], flexle=>1, timeout_s=>3 );
+		flexle=>1, timeout_s=>3 );
 };
 
 use Time::HiRes qw/ gettimeofday /;
@@ -135,7 +135,7 @@ if (!$NGSERLOG) {
 	exit Daemon::Control->new(
 	name         => 'ngserlog_nmea',
 	program      => '/home/pi/hgpstools/ngserlog.pl',
-	program_args => [ '/home/pi/hgpstools/ngserlog_nmea.pl' ],
+	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_nmea.pl' ],
 	user         => 'pi',
 	group        => 'dialout',
 	umask        => oct('0027'),
