@@ -79,9 +79,13 @@ according to the installation instructions:
 	for `filter_ts.pl` the additional requirements are:
 	`libdatetime-perl`, `libdatetime-format-strptime-perl`
 	
-	b.	Recommended: Install the package `ufw`, then do `sudo ufw allow OpenSSH`
-	and `sudo ufw enable` (status can be checked via
-	`sudo ufw status verbose` and `sudo ufw show listening`)
+	b.	Strongly Recommended: Install the package `ufw`, then do (in this
+	order!) `sudo ufw allow OpenSSH` and `sudo ufw enable` (status can be
+	checked via `sudo ufw status verbose` and `sudo ufw show listening`).
+	**However**, if your RPi will be accessible to the entire Internet, it's
+	better to only allow certain address ranges access to your SSH port,
+	e.g. `sudo ufw allow proto tcp from 192.168.1.0/24 to any port 22`
+	(see also `ssh_ufw_autoblock.pl`).
 	
 	c.	Recommended: Install `alpine` and `postfix`, first configure the
 	latter for "Local only", later you can reconfigure it via
