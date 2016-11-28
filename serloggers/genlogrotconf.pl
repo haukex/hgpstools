@@ -9,11 +9,13 @@ A very simple script that generates L<logrotate(8)> configurations
 for the currently known serial loggers.
 
 Use this script to generate a configuration file, then either call it
-directly for debugging, or link it into the L<logrotate(8)> config path:
+directly for debugging, or drop it into the L<logrotate(8)> config path
+with the following, which you will of course need to do B<every time>
+you change something in this script.
 
  ./genlogrotconf.pl > ngserloggers.logrotate
  logrotate -d ngserloggers.logrotate
- sudo ln -s /home/pi/hgpstools/serloggers/ngserloggers.logrotate /etc/logrotate.d/ngserloggers
+ ./genlogrotconf.pl | sudo tee /etc/logrotate.d/ngserloggers
 
 B<Warning:> L<logrotate(8)> will B<delete old log files> in this
 configuration, so by itself it is B<not> a solution for long-term
@@ -21,10 +23,10 @@ data archival.
 
 B<Warning:> This script assumes that all the loggers follow the convention
 that is currently in use for the naming of files:
-All files are in F</home/pi/ngserlog/> and the PID, data, STDOUT, and
+All files are in F</home/pi/> and the PID, data, STDOUT, and
 STDERR files are named, respectively,
-F<< <LOGGER>.pid >>, F<< <LOGGER>_data.txt >>,
-F<< <LOGGER>_out.txt >>, and F<< <LOGGER>_err.txt >>,
+F<< pidfiles/<LOGGER>.pid >>, F<< data/<LOGGER>_data.txt >>,
+F<< logs/<LOGGER>_out.txt >>, and F<< logs/<LOGGER>_err.txt >>,
 where of course F<< <LOGGER> >> is the name of the logger.
 (Exceptions are currently hard-coded in this script!)
 
@@ -60,7 +62,7 @@ my @SERLOGGERS = (qw/ nmea novatel1ctrl novatel2txt novatel3bin hmt310 /,
 	map({"cpt6100_port$_"} 0..3) );
 
 my $CONF_TEMPLATE = <<'END_TEMPLATE';
-/home/pi/ngserlog/<FILENAME> {
+/home/pi/data/<FILENAME> {
 	# It's ok if the log file doesn't exist.
 	missingok
 	# Don't rotate the log file if it's empty.
@@ -77,7 +79,7 @@ my $CONF_TEMPLATE = <<'END_TEMPLATE';
 	# Script to execute after rotation.
 	postrotate
 		# If it's running, tell the logger to reopen the file.
-		test -e /home/pi/ngserlog/<NAME>.pid && kill -USR1 `cat /home/pi/ngserlog/<NAME>.pid`
+		test -e /home/pi/pidfiles/<NAME>.pid && kill -USR1 `cat /home/pi/pidfiles/<NAME>.pid`
 	endscript
 }
 END_TEMPLATE

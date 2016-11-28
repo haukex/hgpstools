@@ -9,6 +9,7 @@ Configuration file and daemon wrapper for F<ngserlog.pl> that talks to
 a Vaisala HMT310 device connected via its USB adapter.
 
 B<This is an alpha version> that needs more documentation. (TODO)
+See F<ngserlog_nmea.pl> for a similar script that has a bit more documentation.
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
@@ -110,7 +111,7 @@ our $HANDLE_STATUS = sub {
 	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
 };
 
-our $OUTFILE = '/home/pi/ngserlog/hmt310_data.txt';
+our $OUTFILE = '/home/pi/data/hmt310_data.txt';
 our $NGSERLOG;
 if (!$NGSERLOG) {
 	require Daemon::Control;
@@ -123,11 +124,11 @@ if (!$NGSERLOG) {
 	umask        => oct('0027'),
 	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	# note that since we use the "outfile" option above, the stdout_file *should* remain empty
-	stdout_file  => '/home/pi/ngserlog/hmt310_out.txt',
+	stdout_file  => '/home/pi/logs/hmt310_out.txt',
 	# since ngserlog now uses syslog, the stderr_file *should* also remain empty
-	stderr_file  => '/home/pi/ngserlog/hmt310_err.txt',
-	pid_file     => '/home/pi/ngserlog/hmt310.pid',
-	resource_dir => '/home/pi/ngserlog/',
+	stderr_file  => '/home/pi/logs/hmt310_err.txt',
+	pid_file     => '/home/pi/pidfiles/hmt310.pid',
+	#resource_dir => '/home/pi/ngserlog/', # currently not needed
 	fork         => 2, # default = 2 = double-fork
 	kill_timeout => 10, # ngserlog.pl needs *at least* one second to shut down, this script needs even longer
 	lsb_start   => '$local_fs $time',

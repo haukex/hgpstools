@@ -15,6 +15,7 @@ FTDI ports you want to access. You will need to set up one daemon
 per port (if desired), they will be named C<cpt6100_portX>.
 
 B<This is an alpha version> that needs more documentation. (TODO)
+See F<ngserlog_nmea.pl> for a similar script that has a bit more documentation.
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
@@ -188,7 +189,7 @@ our $HANDLE_STATUS = sub {
 };
 
 my $DNAME = "cpt6100_port$FTDIPORT";
-our $OUTFILE = "/home/pi/ngserlog/${DNAME}_data.txt";
+our $OUTFILE = "/home/pi/data/${DNAME}_data.txt";
 our $NGSERLOG;
 if (!$NGSERLOG) {
 	require Daemon::Control;
@@ -202,11 +203,11 @@ if (!$NGSERLOG) {
 	umask        => oct('0027'),
 	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	# note that since we use the "outfile" option above, the stdout_file *should* remain empty
-	stdout_file  => "/home/pi/ngserlog/${DNAME}_out.txt",
+	stdout_file  => "/home/pi/logs/${DNAME}_out.txt",
 	# since ngserlog now uses syslog, the stderr_file *should* also remain empty
-	stderr_file  => "/home/pi/ngserlog/${DNAME}_err.txt",
-	pid_file     => "/home/pi/ngserlog/${DNAME}.pid",
-	resource_dir => '/home/pi/ngserlog/',
+	stderr_file  => "/home/pi/logs/${DNAME}_err.txt",
+	pid_file     => "/home/pi/pidfiles/${DNAME}.pid",
+	#resource_dir => '/home/pi/ngserlog/', # currently not needed
 	fork         => 2, # default = 2 = double-fork
 	kill_timeout => 10, # ngserlog.pl needs *at least* one second to shut down, this script needs even longer
 	lsb_start   => '$local_fs $time',

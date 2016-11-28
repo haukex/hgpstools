@@ -12,6 +12,7 @@ This script talks to the USB3 channel, on which we are only logging
 Binary-format records.
 
 B<This is an alpha version> that needs more documentation. (TODO)
+See F<ngserlog_nmea.pl> for a similar script that has a bit more documentation.
 
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
@@ -129,7 +130,7 @@ our $HANDLE_STATUS = sub {
 	$_ = undef;
 };
 
-our $OUTFILE = '/home/pi/ngserlog/novatel3bin_data.dat';
+our $OUTFILE = '/home/pi/data/novatel3bin_data.dat';
 
 our $NGSERLOG;
 if (!$NGSERLOG) {
@@ -143,11 +144,11 @@ if (!$NGSERLOG) {
 	umask        => oct('0027'),
 	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	# note that since we use the "outfile" option above, the stdout_file *should* remain empty
-	stdout_file  => '/home/pi/ngserlog/novatel3bin_out.txt',
+	stdout_file  => '/home/pi/logs/novatel3bin_out.txt',
 	# since ngserlog now uses syslog, the stderr_file *should* also remain empty
-	stderr_file  => '/home/pi/ngserlog/novatel3bin_err.txt',
-	pid_file     => '/home/pi/ngserlog/novatel3bin.pid',
-	resource_dir => '/home/pi/ngserlog/',
+	stderr_file  => '/home/pi/logs/novatel3bin_err.txt',
+	pid_file     => '/home/pi/pidfiles/novatel3bin.pid',
+	#resource_dir => '/home/pi/ngserlog/', # currently not needed
 	fork         => 2, # default = 2 = double-fork
 	kill_timeout => 5, # ngserlog.pl needs *at least* one second to shut down
 	lsb_start   => '$local_fs $time',

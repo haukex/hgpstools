@@ -22,6 +22,13 @@ This script uses the variable C<$NGSERLOG> from F<ngserlog.pl> to detect
 whether it should function as a configuration file only or also
 as a L<Daemon::Control|Daemon::Control> script.
 
+This script requires the paths F< /home/pi/pidfiles/ >, F< /home/pi/logs/ >,
+and F< /home/pi/data/ > to exist. You can also make it easier to view all
+the log files in one place via the following command. See F<ngserlog.pl>
+for information on how to configure C<rsyslog>.
+
+ ln -s /var/log/ngserlog.log ~/logs/
+
 =head2 CONFIGURATION
 
 The subroutine stored in C<$HANDLE_LINE> handles checking input format as
@@ -115,7 +122,7 @@ our $HANDLE_STATUS = sub {
 	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
 };
 
-our $OUTFILE = '/home/pi/ngserlog/nmea_data.txt';
+our $OUTFILE = '/home/pi/data/nmea_data.txt';
 
 # if this script is run directly instead of being required by ngserlog.pl,
 # it functions as a Daemon::Control script for itself
@@ -131,11 +138,11 @@ if (!$NGSERLOG) {
 	umask        => oct('0027'),
 	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	# note that since we use the "outfile" option above, the stdout_file *should* remain empty
-	stdout_file  => '/home/pi/ngserlog/nmea_out.txt',
+	stdout_file  => '/home/pi/logs/nmea_out.txt',
 	# since ngserlog now uses syslog, the stderr_file *should* also remain empty
-	stderr_file  => '/home/pi/ngserlog/nmea_err.txt',
-	pid_file     => '/home/pi/ngserlog/nmea.pid',
-	resource_dir => '/home/pi/ngserlog/',
+	stderr_file  => '/home/pi/logs/nmea_err.txt',
+	pid_file     => '/home/pi/pidfiles/nmea.pid',
+	#resource_dir => '/home/pi/ngserlog/', # currently not needed
 	fork         => 2, # default = 2 = double-fork
 	kill_timeout => 5, # ngserlog.pl needs *at least* one second to shut down
 	lsb_start   => '$local_fs $time',
