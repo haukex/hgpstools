@@ -7,7 +7,10 @@ at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
 Berlin, Germany, <http://www.igb-berlin.de/>
 (legal information below)*
 
-This is a collection of various tools for __logging and parsing GPS NMEA data__.
+This is a collection of various tools for __logging and parsing GPS NMEA data__
+as well as (despite the name of the project)
+__general and device-specific data logging tools__,
+especially for use with a __Raspberry Pi__.
 It is by no means a complete application,
 but its individual parts do work and can hopefully be useful.
 Featuring:
@@ -16,7 +19,6 @@ Featuring:
 * Instructions on how to build a standalone NTP server synchronized to GPS
 * Miscellaneous tools and information on getting things
   running on a [Raspberry Pi](http://www.raspberrypi.org/)
-* (Work is in progress on an NMEA parser)
 
 The scripts are written in [Perl](http://www.perl.org/)
 (at least v5.10 but a current version is *strongly* recommended!)
@@ -27,21 +29,11 @@ These tools currently live at
 <https://bitbucket.org/haukex/hgpstools/>.
 There is also an issue tracker there.
 
-More information on NMEA:
-
-* <http://www.catb.org/gpsd/NMEA.html>
-* <http://home.mira.net/~gnb/gps/nmea.html>
-* <http://www.gpsinformation.org/dale/nmea.htm>
-
-Other existing software tools:
-
-* [gpsd](http://www.catb.org/gpsd/)
-* [GPSBabel](http://www.gpsbabel.org/)
-
 In general, you can get each tool's documentation via `perldoc <filename>`.
 In a few places, not every configuration option is documented, and
 you may still need to have a look at the code.
-A brief overview of the tools:
+The following gives some starting points, but note this list is not complete,
+have a look around this repository to discover all the available scripts.
 
 *	**`INSTALL-RPi.md`**
 	
@@ -55,25 +47,24 @@ A brief overview of the tools:
 	Instructions and tools to build a standalone GPS-synchronized NTP
 	server with a Raspberry Pi 3, an Adafruit "GPS Hat", and `chrony`.
 	
-*	**`ngserlog.pl`**
+*	**`ngserlog.pl`** and the `serloggers/*` scripts
 	
 	A generic serial port logger with support for hot-plugging USB/RS232 adapters.
-	In combination with `ngserlog_nmea.pl`, it processes NMEA data,
-	and can be run as a daemon.
-	The configuration can be copied and adapted to log other kinds of data.
-	
-*	**`my_ip.pl`**
-	
-	Report the computer's IP address(es).
-	
-*	**`udplisten.pl`**
-	
-	Listen for a specific UDP message and report the sender's IP address.
-	
-*	**Other Files**
-	
-	There are various other utilities in this project; each file should
-	contain documentation as to its purpose.
+	In combination with a configuration script such as `ngserlog_nmea.pl`,
+	it processes NMEA data, and can be run as a daemon.
+	Various other loggers have been added as well, and those
+	configurations can be copied and adapted to log other kinds of data.
+
+More information on NMEA:
+
+* <http://www.catb.org/gpsd/NMEA.html>
+* <http://home.mira.net/~gnb/gps/nmea.html>
+* <http://www.gpsinformation.org/dale/nmea.htm>
+
+Other existing software tools:
+
+* [gpsd](http://www.catb.org/gpsd/)
+* [GPSBabel](http://www.gpsbabel.org/)
 
 
 Author, Copyright, and License
