@@ -35,6 +35,9 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
+use FindBin;
+use lib "$FindBin::Bin/..";
+
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'09d7', prod=>'0100');

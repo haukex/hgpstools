@@ -38,6 +38,9 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
+use FindBin;
+use lib "$FindBin::Bin/..";
+
 die "You need to set the CPT_FTDI_PORT environment variable, "
 	."acceptable values are port0, port1, port2, port3\n"
 	unless length $ENV{CPT_FTDI_PORT} && $ENV{CPT_FTDI_PORT}=~/^port([0-3])$/i;

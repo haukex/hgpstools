@@ -233,6 +233,8 @@ our $MAX_ERRORS = 100;
 use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
 use Sys::Syslog qw/openlog syslog closelog/;
+use FindBin;
+use lib $FindBin::Bin;
 use SerialPort;
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
