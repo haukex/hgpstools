@@ -40,6 +40,7 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 use FindBin;
 use lib "$FindBin::Bin/..";
+use local::lib '/home/pi/perl5';
 
 die "You need to set the CPT_FTDI_PORT environment variable, "
 	."acceptable values are port0, port1, port2, port3\n"

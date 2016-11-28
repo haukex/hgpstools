@@ -34,6 +34,7 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 use FindBin;
 use lib "$FindBin::Bin/..";
+use local::lib '/home/pi/perl5';
 
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {

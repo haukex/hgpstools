@@ -80,6 +80,7 @@ use Fcntl qw/:DEFAULT/;
 use Time::HiRes qw/gettimeofday tv_interval/;
 use IO::Select ();
 use IO::Termios (); # on RPi, can be installed via CPAN + local::lib
+	# can install local::lib via: sudo apt-get install liblocal-lib-perl
 use IO::Stty ();
 use Data::Dumper (); # for debugging
 

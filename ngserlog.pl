@@ -230,11 +230,12 @@ our $SYSLOG_TO_STDERR = 0;
 our $MAX_ERRORS = 100;
 # ###
 
+use FindBin;
+use lib $FindBin::Bin;
+use local::lib '/home/pi/perl5'; #TODO Later: Don't hardcode local::lib into the script
 use Getopt::Std 'getopts';
 use Pod::Usage 'pod2usage';
 use Sys::Syslog qw/openlog syslog closelog/;
-use FindBin;
-use lib $FindBin::Bin;
 use SerialPort;
 
 sub HELP_MESSAGE { pod2usage(-output=>shift); return }
