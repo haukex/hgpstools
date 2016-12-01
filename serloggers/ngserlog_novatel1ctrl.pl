@@ -14,6 +14,32 @@ channel.
 B<This is an alpha version> that needs more documentation. (TODO)
 See F<ngserlog_nmea.pl> for a similar script that has a bit more documentation.
 
+=head1 DETAILS
+
+To get the Linux kernel driver C<usbserial> to reliably recognize the Novatel
+appears to be a little finicky, as there are different commands that only seem
+to work on specific Raspbian versions (perhaps due to differences in the kernel
+drivers across versions, but I'm not yet sure).
+
+The following is a combination of two different commands that each worked
+separately on two different RPis, and in total it appears to work reliably.
+
+Create the file C</root/novatel.sh> with permissions 755 and the following
+contents:
+
+ #!/bin/sh
+ date >>/var/log/novatel-init.log
+ /sbin/modprobe usbserial vendor=0x09d7 product=0x0100
+ echo 09d7 0100 >/sys/bus/usb-serial/drivers/generic/new_id
+
+Then create the file F</etc/udev/rules.d/90-novatel.rules> with the
+following contents:
+
+ SUBSYSTEM=="usb", ATTR{idProduct}=="0100", ATTR{idVendor}=="09d7", RUN+="/root/novatel.sh"
+
+Running the above script should set up the Novatel device without requiring a
+reboot, and the C<udev> rule should take care of doing so automatically on boot.
+
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
 Copyright (c) 2016 Hauke Daempfling (haukex@zero-g.net)
