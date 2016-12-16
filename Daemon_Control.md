@@ -22,6 +22,10 @@ For more information:
 	./$SCRIPT --help   # see available commands
 	view $SCRIPT       # view code for details
 
+To get the name of the daemon (`$DAEMON`):
+
+	./$SCRIPT get_init_file | grep Provides:
+
 To install and run the daemon:
 
 	./$SCRIPT get_init_file | sudo tee /etc/init.d/$DAEMON
