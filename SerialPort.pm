@@ -68,6 +68,22 @@ the F</dev/> entry may not disappear immediately, so if you want to be sure
 of an unplug event, you could implement a brief C<sleep> before testing the
 existence of the device.
 
+=head3 Installation
+
+On a clean RPi installation, the following commands are necessary to
+install the prerequisites for this module. Note this uses the Perl module
+C<local::lib> to install the libraries in the user's home directory
+instead of installing them to the system Perl.
+
+ sudo apt-get install liblocal-lib-perl libio-pty-perl libpath-class-perl libio-stty-perl
+ cpan
+    # When asked if you want automatic config, say yes
+    # When asked what appraoch you want, choose local::lib
+    # When asked by the local::lib install whether you want to
+    #   append the local::lib stuff to .bashrc, say yes
+ # log out and back in to make sure local::lib config is in effect
+ cpan IO::Termios
+
 =head1 Methods
 
 =cut
@@ -79,8 +95,7 @@ use IO::Handle ();
 use Fcntl qw/:DEFAULT/;
 use Time::HiRes qw/gettimeofday tv_interval/;
 use IO::Select ();
-use IO::Termios (); # on RPi, can be installed via CPAN + local::lib
-	# can install local::lib via: sudo apt-get install liblocal-lib-perl
+use IO::Termios ();
 use IO::Stty ();
 use Data::Dumper (); # for debugging
 
