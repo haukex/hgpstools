@@ -102,8 +102,8 @@ our $SERVER_GROUP = 'nogroup';
 # Will be automatically created by dex_starman.pl
 our $DEX_PATH = "$DEX_RESOURCE_DIR/dex";
 # Chown the $DEX_PATH to this user/group (set $DEX_PATH_USER to undef to disable)
-our $DEX_PATH_USER = undef;
-our $DEX_PATH_GROUP = undef;
+our $DEX_PATH_USER = 'pi';
+our $DEX_PATH_GROUP = 'pi';
 # The path where the raw log files are kept so the user can download them.
 our $RAWDATA_PATH = "/home/pi/data";
 
