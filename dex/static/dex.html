@@ -104,14 +104,18 @@ function display_age(elem, time_sec, limits) {
 		elem.addClass("status_ok").removeClass("status_warn status_err");
 }
 var last_rx_dt;
+var last_setTimeout_ID = null;
+var fetching_stopped = 0;
 function do_fetch () {
+	last_setTimeout_ID = null;
+	if (fetching_stopped) return;
 	$.ajax({
 		url: "/get",
 		cache: false,
 		dataType: "json",
 		success: function (response) {
 			if (response._error) {
-				$('#req_status').addClass("status_err").removeClass("status_ok")
+				$('#req_status').addClass("status_err").removeClass("status_ok status_warn")
 					.text("Server Error: "+response._error);
 				return }
 			last_rx_dt = new Date();
@@ -122,17 +126,19 @@ function do_fetch () {
 				{ warn_s: 1, error_s: 2 } );
 			$('#server_time').text(new Date(response._servertime*1000).toISOString())
 			
-			$('#req_status').addClass("status_ok").removeClass("status_err")
+			$('#req_status').addClass("status_ok").removeClass("status_err status_warn")
 				.text("Success");
 			$('#raw_data_content').text(JSON.stringify(response, null, 2));
 			$.each(datahandlers, function(i,handler) { handler(response) });
 		},
 		error: function (jqXHR, textStatus, errorThrown) {
-			$('#req_status').addClass("status_err").removeClass("status_ok")
+			$('#req_status').addClass("status_err").removeClass("status_ok status_warn")
 				.text("GET ERROR: "+textStatus+" / "+errorThrown);
 		},
+		complete: function () {
+			last_setTimeout_ID = setTimeout(do_fetch, 1000);
+		},
 	});
-	setTimeout(do_fetch, 1000);
 }
 function per_interval() {
 	var now = new Date();
@@ -282,6 +288,24 @@ function init_layout() {
 		localStorage.setItem('configVersion', 0);
 		localStorage.setItem('widgetLastmod', 0);
 	});
+	// stop/start fetching stuff
+	$('#start_stop_datafetch').click(function() {
+		if (fetching_stopped) {
+			$(this).text('Stop Fetching Data');
+			fetching_stopped = 0;
+			do_fetch();
+		}
+		else {
+			fetching_stopped = 1;
+			if (last_setTimeout_ID!=null) {
+				clearTimeout(last_setTimeout_ID);
+				last_setTimeout_ID = null;
+			}
+			$('#req_status').addClass("status_warn").removeClass("status_ok status_err")
+					.text("Fetching Stopped");
+			$(this).text('Start Fetching Data');
+		}
+	});
 	// final init stuff
 	$('#loading').remove();
 	myLayout.init();
@@ -331,6 +355,7 @@ function check_duplicate_ids () { // for debugging
 </tr>
 </table>
 <div><button class="btn_confirm" id="clear_state">Clear Saved Window State</button></div>
+<div><button class="btn_confirm" id="start_stop_datafetch">Stop Fetching Data</button></div>
 <div><a href="/rawdata" target="_blank">Download Raw Data</a></div>
 </div>
 
