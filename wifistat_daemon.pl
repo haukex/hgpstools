@@ -46,6 +46,7 @@ exit Daemon::Control->new(
 	resource_dir => '/var/run/wifistat/',
 	pid_file     => '/var/run/wifistat/wifistat.pid',
 	# the stdout_file and stderr_file should normally remain empty
+	# so it's ok that they are in /var/run
 	stdout_file  => '/var/run/wifistat/wifistat_out.txt',
 	stderr_file  => '/var/run/wifistat/wifistat_err.txt',
 	fork         => 2, # default = 2 = double-fork
