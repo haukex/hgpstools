@@ -22,11 +22,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 $('body').append(
   '<div class="widget" id="sens_cpt6100">'
 + '<table id="cpt6100">'
-+ '<tr><th>Port</th><th>Pressure</th><th>Age</th></tr>'
-+ '<tr><td>0</td><td><span id="cpt6100_port0_val">?</span></td><td><span id="cpt6100_port0_age">?</span></td></tr>'
-+ '<tr><td>1</td><td><span id="cpt6100_port1_val">?</span></td><td><span id="cpt6100_port1_age">?</span></td></tr>'
-+ '<tr><td>2</td><td><span id="cpt6100_port2_val">?</span></td><td><span id="cpt6100_port2_age">?</span></td></tr>'
-+ '<tr><td>3</td><td><span id="cpt6100_port3_val">?</span></td><td><span id="cpt6100_port3_age">?</span></td></tr>'
++ '<tr><th>Port</th><th>Pressure</th><th class="small">Age</th></tr>'
++ '<tr><td>0</td><td><span id="cpt6100_port0_val">?</span></td><td><span id="cpt6100_port0_age" class="small">?</span></td></tr>'
++ '<tr><td>1</td><td><span id="cpt6100_port1_val">?</span></td><td><span id="cpt6100_port1_age" class="small">?</span></td></tr>'
++ '<tr><td>2</td><td><span id="cpt6100_port2_val">?</span></td><td><span id="cpt6100_port2_age" class="small">?</span></td></tr>'
++ '<tr><td>3</td><td><span id="cpt6100_port3_val">?</span></td><td><span id="cpt6100_port3_age" class="small">?</span></td></tr>'
 + '</table>'
 + '</div>' );
 

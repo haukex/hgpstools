@@ -21,7 +21,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 $('body').append(
   '<div class="widget" id="sens_hmt310">'
-+ '<div><span id="hmt310_value" style="font-weight:bold;">?</span></div>'
++ '<div id="hmt310_data">?</div>'
 + '<div class="small">Data Age: <span id="hmt310_age">?</span></div>'
 + '</div>' );
 
@@ -33,7 +33,15 @@ data_ages.hmt310_age = { age_s: null };
 datahandlers.push(
 	function (data) {
 		if (!data.hmt310) return;
-		$('#hmt310_value').text(data.hmt310.data);
+		$('#hmt310_data').empty();
+		var tbl = $('<table/>');
+		$.each(data.hmt310.data, function(i, val) {
+			tbl.append( $('<tr/>')
+				.append( $('<td/>', { text: val[0] } ) )
+				.append( $('<td/>', { text: val[1] } ) )
+				.append( $('<td/>', { text: val[2] } ) ) );
+		});
+		$('#hmt310_data').append(tbl);
 		data_ages.hmt310_age.age_s = data.hmt310._now;
 	} );
 

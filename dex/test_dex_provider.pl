@@ -36,17 +36,31 @@ my %dex =
 	map { $_=>DexProvider->new( srcname=>$_, dexpath=>'_FROM_CONFIG', interval_s=>1 ) }
 	qw/ hmt310 novatel cpt6100_port0 cpt6100_port1 cpt6100_port2 cpt6100_port3 /;
 
+my $fake_hmt310_data = [
+		[ RH => '24.3', '%RH'   ],
+		[ T  => '19.2', "'C"    ],
+		[ Td => '-1.7', "'C"    ],
+		[ Tdf=> '-1.5', "'C"    ],
+		[ a  => '4.0',  'g/m3'  ],
+		[ x  => '3.3',  'g/kg'  ],
+		[ Tw => '9.5',  "'C"    ],
+		[ ppm=> '5363', undef   ],
+		[ pw => '5.40', 'hPa'   ],
+		[ pws=> '22.26','hPa'   ],
+		[ h  => '27.9', 'kJ/kg' ],
+	];
+
 my $run = 1;
 local $SIG{INT} = sub { $run=0 };
 my $val=0;
 while ($run) {
+	$dex{hmt310}->provide({data=>$fake_hmt310_data});
+	$dex{cpt6100_port0}->provide({pressure=>1234});
+	$dex{cpt6100_port1}->provide({pressure=>2345});
+	$dex{cpt6100_port2}->provide({pressure=>3456});
+	$dex{cpt6100_port3}->provide({pressure=>4567});
 	#TODO: Provide some better fake data
-	$dex{hmt310}->provide({data=>'fake hmt310'});
 	$dex{novatel}->provide({record=>'fake novatel'});
-	$dex{cpt6100_port0}->provide({pressure=>111});
-	$dex{cpt6100_port1}->provide({pressure=>222});
-	$dex{cpt6100_port2}->provide({pressure=>333});
-	$dex{cpt6100_port3}->provide({pressure=>444});
 	sleep(0.333333333333333);
 }
 print "\nDone.\n";
