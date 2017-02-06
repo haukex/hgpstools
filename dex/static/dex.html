@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+	<!-- SEE THE BOTTOM OF THIS FILE FOR Author, Copyright, and License -->
+	<title>DataEXchange</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="stylesheet" type="text/css" href="normalize.css" />
+	<link rel="stylesheet" type="text/css" href="goldenlayout-base.css" />
+	<link rel="stylesheet" type="text/css" href="goldenlayout-light-theme.css" />
+	<style type="text/css">
+<!--/* <![CDATA[ */
+.widget {
+	font-size: 11pt;
+	margin: 0.4em 0.6em;
+	display: none; /* will be made visible when added to layout */
+}
+.small {
+	font-size: 9pt;
+}
+button {
+	margin: 2px;
+	padding: 1px 5px;
+}
+pre {
+	font-size: 10pt;
+}
+input[type='checkbox'] {
+	vertical-align: middle;
+	margin-left: 2px;
+	margin-right: 2px;
+}
+button.btn_confirm {
+	margin-right: 0.5em;
+}
+.lm_content{
+	/* copied from the goldenlayout themes to add the overflow setting
+	 * and (optionally) adjust the colors a bit */
+	overflow: auto;
+/* for light theme: */
+	background: #eeeeee;
+/* for dark theme:
+	color: white;	*/
+}
+.lm_title {
+	font-weight: bold;
+	color: darkblue;
+}
+.status_ok {
+	color: darkgreen;
+}
+.status_warn {
+	font-weight: bold;
+	color: darkorange;
+}
+.status_err {
+	font-weight: bold;
+	color: red;
+}
+#loading {
+	width: 100%;
+	text-align: center;
+	position: absolute;
+	top: 20%;
+	font-weight: bold;
+}
+/* ]]> */-->
+	</style>
+	<script src="jquery.min.js"></script>
+	<script type="text/javascript" src="goldenlayout.min.js"></script>
+	<script type="text/javascript">
+//<![CDATA[
+"use strict";
+var widgetLastmod = 0;
+var configVersion = 1; // Reminder: Change this to force saved state to be discarded
+/* Widget scripts must be named "widget_*.js", these are loaded dynamically
+ * in the code below with the help of the server command "listwidgets".
+ * Widgets need to register themselves in the global vars "components",
+ * "datahandlers", and "data_ages", and should add their HTML <div> elements
+ * (id must be the same as the componentName) to the body of the page. */
+var datahandlers = []; // an array of functions, called when data is received
+/* data_ages = { 'html id': { age_s: 'age in seconds',
+ * limit: { warn_s: 'warn time in seconds', error_s: 'error time in seconds' } } }
+ * "limit" is optional, but if specified, must include both "warn_s" and "error_s" */
+var data_ages = {};
+var components = [
+		{ componentName: 'dex_main',   title: 'DataEXchange' },
+		{ componentName: 'srv_cmds',   title: 'Server Commands' },
+		{ componentName: 'raw_data',   title: 'Raw Data' },
+		{ componentName: 'legal_info', title: 'Legal Info' },
+];
+
+function display_age(elem, time_sec, limits) {
+	elem.text(time_sec.toFixed(3)+" s");
+	if (!limits) limits = { warn_s: 3, error_s: 6 };
+	if (time_sec>limits.error_s)
+		elem.addClass("status_err").removeClass("status_ok status_warn");
+	else if (time_sec>limits.warn_s)
+		elem.addClass("status_warn").removeClass("status_ok status_err");
+	else
+		elem.addClass("status_ok").removeClass("status_warn status_err");
+}
+var last_rx_dt;
+function do_fetch () {
+	$.ajax({
+		url: "/get",
+		cache: false,
+		dataType: "json",
+		success: function (response) {
+			if (response._error) {
+				$('#req_status').addClass("status_err").removeClass("status_ok")
+					.text("Server Error: "+response._error);
+				return }
+			last_rx_dt = new Date();
+			$('#last_rx_time').text(last_rx_dt.toISOString());
+			$('#last_rx_age').text("0.000 s");
+			display_age($('#client_server_time_diff'),
+				last_rx_dt.getTime()/1000 - response._servertime,
+				{ warn_s: 1, error_s: 2 } );
+			$('#server_time').text(new Date(response._servertime*1000).toISOString())
+			
+			$('#req_status').addClass("status_ok").removeClass("status_err")
+				.text("Success");
+			$('#raw_data_content').text(JSON.stringify(response, null, 2));
+			$.each(datahandlers, function(i,handler) { handler(response) });
+		},
+		error: function (jqXHR, textStatus, errorThrown) {
+			$('#req_status').addClass("status_err").removeClass("status_ok")
+				.text("GET ERROR: "+textStatus+" / "+errorThrown);
+		},
+	});
+	setTimeout(do_fetch, 1000);
+}
+function per_interval() {
+	var now = new Date();
+	$('#client_time').text(now.toISOString());
+	if (last_rx_dt) {
+		display_age($('#last_rx_age'),
+			(now.getTime() - last_rx_dt.getTime())/1000,
+			{ warn_s: 2, error_s: 5 } );
+	}
+	$.each(data_ages, function(id,dage) {
+		if (dage.age_s) {
+			/* Note: In theory this should be adjusted by the "client_server_time_diff",
+			 * but currently that's usually very small, so ignore for now */
+			display_age($('#'+id),
+				now.getTime()/1000 - dage.age_s, dage.limits );
+		}
+	});
+}
+function set_post_btn_state(enable) {
+	$('button.post_cmd').each(function () {
+		if (!enable || !$(this).hasClass("btn_confirm"))
+			$(this).prop("disabled",!enable);
+	});
+}
+function do_post(cmd, data) {
+	set_post_btn_state(false);
+	$('#srv_cmd_response').append('##### Command "'+cmd+'" #####'+"\n");
+	$.ajax({
+		type: "POST",
+		url: "/post/"+cmd,
+		data: JSON.stringify(data),
+		dataType: "json",
+		success: function (response) {
+			if (!response._error && response._ok) {
+				if (response.data)
+					$('#srv_cmd_response').append(JSON.stringify(response.data, null, 2)+"\n");
+				else if (response.text) {
+					$('#srv_cmd_response').append(response.text);
+					if (response.text.slice(-1) != "\n")
+						$('#srv_cmd_response').append("\n");
+				}
+				$('#srv_cmd_response').append("##### Done\n");
+				if (response.alert)
+					alert(response.alert);
+			}
+			else {
+				$('#srv_cmd_response').append('##### FAIL: '+response._error+"\n");
+				alert("Post Failed: "+response._error);
+			}
+			set_post_btn_state(true);
+		},
+		error: function (jqXHR, textStatus, errorThrown) {
+			var errmsg = textStatus+" / "+errorThrown;
+			$('#srv_cmd_response').append('##### FAIL: '+errmsg+"\n");
+			alert("Post Failed: "+errmsg);
+			set_post_btn_state(true);
+		},
+	});
+}
+function add_btn_confirm (btn) {
+	btn = $(btn);
+	btn.addClass("btn_confirm");
+	btn.prop("disabled",true);
+	var cb = $('<input/>', { type: 'checkbox' });
+	btn.after( $('<label/>').append(cb, "Confirm") );
+	cb.change(function() {
+		btn.prop("disabled", !this.checked);
+	});
+	btn.click(function() {
+		btn.prop("disabled", true);
+		cb.prop('checked', false);
+	});
+	return btn;
+}
+$(document).ready(function() {
+	$('button.btn_confirm').each(function() { add_btn_confirm($(this)) });
+	var ajax_left = 2; // ensure *all* ajax requests are done, even chained ones
+	$(document).ajaxStop(function() {
+		console.log("ajaxStop: ajax_left="+ajax_left);
+		if (ajax_left<0)
+			alert("Internal error: ajax_left<0");
+		else if (ajax_left==0) {
+			$(this).off("ajaxStop");
+			init_layout();
+		}
+	});
+	$.ajax({ url: "/listwidgets",
+		dataType: "json", cache: false,
+		success: function (response) {
+			ajax_left += response.widgets.length;
+			widgetLastmod = response.lastmod;
+			$.each(response.widgets, function(i,widget) {
+				$.getScript(widget)
+					.fail(function(jqXHR, settings, exception) {
+						alert("Failed to load "+widget);
+					})
+					.always(function() {ajax_left--});
+			});
+		},
+		error: function (jqXHR, textStatus, errorThrown) {
+			alert("Failed to list widgets! "+textStatus+" / "+errorThrown);
+		},
+		complete: function () {ajax_left--} });
+	$.getScript("post_commands.js")
+		.fail(function(jqXHR, settings, exception) {
+			alert("Failed to load post_commands.js!");
+		})
+		.always(function() {ajax_left--});
+});
+function init_layout() {
+	// setup config
+	var config = {
+		settings: {
+			showPopoutIcon: false,
+			showCloseIcon: false, // apparently needed in addition to isClosable
+		},
+		// Reminder: Some of the code below depends on this being only one stack!
+		content: [{ type: 'stack', content: components }]
+	};
+	$.each(config.content[0].content, function(i,comp) {
+		comp["type"] = 'component';
+		comp["isClosable"] = false;
+	});
+	// load saved state
+	var savedState = localStorage.getItem('savedState');
+	savedState = savedState
+		&& localStorage.getItem('configVersion')==configVersion
+		&& localStorage.getItem('widgetLastmod')==widgetLastmod
+		? JSON.parse(savedState) : null;
+	// init layout
+	var myLayout = new GoldenLayout(savedState ? savedState : config);
+	$.each(config.content[0].content, function(i,comp) {
+		myLayout.registerComponent(comp.componentName, function(container, componentState) {
+			var cdiv=$('#'+comp.componentName);
+			cdiv.show();
+			cdiv.appendTo(container.getElement());
+		});
+	});
+	// save state functionality
+	myLayout.on('stateChanged', function() {
+		localStorage.setItem('savedState', JSON.stringify(myLayout.toConfig()) );
+		localStorage.setItem('configVersion', configVersion);
+		localStorage.setItem('widgetLastmod', widgetLastmod);
+	});
+	$('#clear_state').click(function() {
+		localStorage.setItem('savedState', null);
+		localStorage.setItem('configVersion', 0);
+		localStorage.setItem('widgetLastmod', 0);
+	});
+	// final init stuff
+	$('#loading').remove();
+	myLayout.init();
+	setInterval(per_interval, 100);
+	do_fetch();
+	check_duplicate_ids();
+}
+function check_duplicate_ids () { // for debugging
+	var ids = {};
+	$('[id]').each(function() {
+		if (this.id && ids[this.id])
+			alert('Duplicate ID #'+this.id);
+		ids[this.id] = 1;
+	});
+}
+//]]>
+	</script>
+</head>
+<body>
+<div id="loading">Loading, Please Wait...</div>
+
+<div class="widget" id="dex_main">
+<table class="small">
+<tr>
+	<td>Most recent request status:</td>
+	<td><span id="req_status">?</span></td>
+</tr>
+<tr>
+	<td>Current browser time:</td>
+	<td><span id="client_time">?</span></td>
+</tr>
+<tr>
+	<td>Most recent data fetch:</td>
+	<td><span id="last_rx_time">?</span></td>
+</tr>
+<tr>
+	<td>Reported server time:</td>
+	<td><span id="server_time">?</span></td>
+</tr>
+<tr>
+	<td>Most recent fetch age:</td>
+	<td><span id="last_rx_age">?</span></td>
+</tr>
+<tr>
+	<td>Browser-server time diff.:</td>
+	<td><span id="client_server_time_diff">?</span></td>
+</tr>
+</table>
+<div><button class="btn_confirm" id="clear_state">Clear Saved Window State</button></div>
+<div><a href="/rawdata" target="_blank">Download Raw Data</a></div>
+</div>
+
+<div class="widget" id="srv_cmds">
+<div id="post_commands"></div>
+<pre id="srv_cmd_response"></pre>
+</div>
+
+<div class="widget" id="raw_data">
+<pre id="raw_data_content">
+</pre>
+</div>
+
+<div class="widget" id="legal_info">
+<h3>Author, Copyright, and License</h3>
+<p>This project makes use of several third-party components, listed below.
+These components are not distributed with this software, but are required for its use.</p>
+<p>Copyright &copy; 2017 Hauke D&auml;mpfling <a href="mailto:haukex@zero-g.net">haukex@zero-g.net</a>
+at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
+Berlin, Germany, <a href="http://www.igb-berlin.de/" target="_blank">http://www.igb-berlin.de/</a></p>
+<p>This project is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>This software is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with this software. If not, see
+<a href="http://www.gnu.org/licenses/" target="_blank">http://www.gnu.org/licenses/</a>.</p>
+
+<h3>Normalize.css</h3>
+<p>This project makes use of the
+<a href="https://necolas.github.io/normalize.css/" target="_blank">Normalize.css</a>
+library. Its license terms are available
+<a href="https://github.com/necolas/normalize.css/blob/master/LICENSE.md" target="_blank">here</a>.</p>
+
+<h3>jQuery</h3>
+<p>This project makes use of the
+<a href="https://jquery.com/" target="_blank">jQuery</a>
+library. Its license terms are available
+<a href="https://jquery.org/license/" target="_blank">here</a>.</p>
+
+<h3>GoldenLayout</h3>
+<p>This project makes use of the
+<a href="https://www.golden-layout.com/" target="_blank">GoldenLayout</a>
+library. Its license terms are available
+<a href="https://github.com/deepstreamIO/golden-layout/blob/master/LICENSE" target="_blank">here</a>.</p>
+
+</div>
+
+</body>
+</html>
