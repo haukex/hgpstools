@@ -93,6 +93,7 @@ var components = [
 		{ componentName: 'raw_data',   title: 'Raw Data' },
 		{ componentName: 'legal_info', title: 'Legal Info' },
 ];
+var raw_data_is_visible=false;
 
 function display_age(elem, time_sec, limits) {
 	elem.text(time_sec.toFixed(3)+" s");
@@ -129,7 +130,8 @@ function do_fetch () {
 			
 			$('#req_status').addClass("status_ok").removeClass("status_err status_warn")
 				.text("Success");
-			$('#raw_data_content').text(JSON.stringify(response, null, 2));
+			if (raw_data_is_visible)
+				$('#raw_data_content').text(JSON.stringify(response, null, 2));
 			$.each(datahandlers, function(i,handler) { handler(response) });
 		},
 		error: function (jqXHR, textStatus, errorThrown) {
@@ -276,6 +278,10 @@ function init_layout() {
 			var cdiv=$('#'+comp.componentName);
 			cdiv.show();
 			cdiv.appendTo(container.getElement());
+			if (comp.componentName=='raw_data') {
+				container.on('show', function () { raw_data_is_visible=true; });
+				container.on('hide', function () { raw_data_is_visible=false; });
+			}
 		});
 	});
 	// save state functionality
