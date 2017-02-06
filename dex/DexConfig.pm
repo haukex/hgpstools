@@ -82,13 +82,14 @@ our @EXPORT_OK = qw/
 	$STARMAN_LISTEN
 	$STARMAN_STDERR_FILE	$STARMAN_ACCESS_LOG
 	$SERVER_USER	$SERVER_GROUP
-	$DEX_PATH
+	$DEX_PATH	$DEX_PATH_USER	$DEX_PATH_GROUP
 	$RAWDATA_PATH
 	$POST_AUTH_USER	$POST_AUTH_REALM	$POST_AUTH_HASH
 	$STATICFILES_PATH
 	$POST_APPS_PATH
 /;
 
+# Resource dir will be automatically created by dex_starman.pl
 our $DEX_RESOURCE_DIR = '/var/run/dex';
 our $STARMAN_LISTEN = ':5000'; # see doc of "starman" command
 #TODO: Logs would normally not be in /var/run, this is just for testing.
@@ -98,7 +99,11 @@ our $SERVER_USER = 'nobody';
 our $SERVER_GROUP = 'nogroup';
 
 # The path in which the .json files are placed by DexProvider.
+# Will be automatically created by dex_starman.pl
 our $DEX_PATH = "$DEX_RESOURCE_DIR/dex";
+# Chown the $DEX_PATH to this user/group (set $DEX_PATH_USER to undef to disable)
+our $DEX_PATH_USER = undef;
+our $DEX_PATH_GROUP = undef;
 # The path where the raw log files are kept so the user can download them.
 our $RAWDATA_PATH = "/home/pi/data";
 

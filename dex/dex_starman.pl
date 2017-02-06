@@ -40,11 +40,13 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 use FindBin ();
 use lib $FindBin::Bin;
 use DexConfig qw/ $DEX_RESOURCE_DIR $STARMAN_LISTEN $STARMAN_STDERR_FILE
-	$STARMAN_ACCESS_LOG $SERVER_USER $SERVER_GROUP /;
+	$STARMAN_ACCESS_LOG $SERVER_USER $SERVER_GROUP
+	$DEX_PATH $DEX_PATH_USER $DEX_PATH_GROUP /;
 
 use Daemon::Control;
 use User::pwent;
 use User::grent;
+use File::Path qw/make_path/;
 
 exit Daemon::Control->new(
 	name         => 'dex_starman',
@@ -79,6 +81,12 @@ sub run_starman {
 	my $grent = getgrnam($SERVER_GROUP) or die "No such group '$SERVER_GROUP'?";
 	chown( $pwent->uid, $grent->gid, $DEX_RESOURCE_DIR )==1
 		or warn "Warning: Failed to chown $DEX_RESOURCE_DIR: $!\n";
+	# Create the $DEX_PATH
+	if (!-e $DEX_PATH) {
+		make_path( $DEX_PATH, {
+				defined $DEX_PATH_USER ? (user=>$DEX_PATH_USER, group=>$DEX_PATH_GROUP) : ()
+			} );
+	}
 	# The following is adapted from the "starman" launcher script.
 	# AFAICT, both Plack::Runner->new(@args) and ->parse_options(@argv) set
 	# options, and these options are shared between "Starman::Server"
