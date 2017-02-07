@@ -38,12 +38,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use FindBin;
-use lib "$FindBin::Bin/..";
-use lib "$FindBin::Bin/../dex";
-use lib "$FindBin::Bin/dex";
-use local::lib '/home/pi/perl5';
-
 die "You need to set the CPT_FTDI_PORT environment variable, "
 	."acceptable values are port0, port1, port2, port3\n"
 	unless length $ENV{CPT_FTDI_PORT} && $ENV{CPT_FTDI_PORT}=~/^port([0-3])$/i;
@@ -207,6 +201,7 @@ if (!$NGSERLOG) {
 	name         => "ngserlog_$DNAME",
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_cpt6100.pl' ],
+	init_config  => '/etc/default/hgpstools',
 	init_code    => qq{export CPT_FTDI_PORT="port$FTDIPORT"\n},
 	user         => 'pi',
 	group        => 'dialout',

@@ -38,7 +38,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 =cut
 
 use FindBin ();
-use lib $FindBin::Bin;
 use DexConfig qw/ $DEX_RESOURCE_DIR $STARMAN_LISTEN $STARMAN_STDERR_FILE
 	$STARMAN_ACCESS_LOG $SERVER_USER $SERVER_GROUP
 	$DEX_PATH $DEX_PATH_USER $DEX_PATH_GROUP /;
@@ -51,6 +50,7 @@ use File::Path qw/make_path/;
 exit Daemon::Control->new(
 	name         => 'dex_starman',
 	program      => \&run_starman,
+	init_config  => '/etc/default/hgpstools',
 	# Instead of "user" and "group" here, we'll let Starman handle this below
 	# so that Starman can bind to low-numbered ports when run as root.
 	# However, see notes on chown below.

@@ -41,6 +41,7 @@ use Daemon::Control;
 exit Daemon::Control->new(
 	name         => 'wifistat',
 	program      => \&wifistat,
+	init_config  => '/etc/default/hgpstools',
 	# note we want to run as root so we don't set user & group
 	umask        => oct('0022'),
 	resource_dir => '/var/run/wifistat/',

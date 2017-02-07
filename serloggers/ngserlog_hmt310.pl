@@ -32,13 +32,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-#TODO: this is just a hack, really need to organize library locations better, in all logger scripts
-use FindBin;
-use lib "$FindBin::Bin/..";
-use lib "$FindBin::Bin/../dex";
-use lib "$FindBin::Bin/dex";
-use local::lib '/home/pi/perl5';
-
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'1843', prod=>'0200');
@@ -161,6 +154,7 @@ if (!$NGSERLOG) {
 	name         => 'ngserlog_hmt310',
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_hmt310.pl' ],
+	init_config  => '/etc/default/hgpstools',
 	user         => 'pi',
 	group        => 'dialout',
 	umask        => oct('0027'),

@@ -36,6 +36,7 @@ exit Daemon::Control->new(
 	name         => 'gpsd2file',
 	program      => '/home/pi/hgpstools/gpsd2file.pl',
 	program_args => [ '-i5', '-f/var/run/gpsd2file/gpsd.json' ],
+	init_config  => '/etc/default/hgpstools',
 	user         => 'pi',
 	group        => 'pi',
 	umask        => oct('0022'),

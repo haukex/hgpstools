@@ -35,12 +35,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use FindBin;
-use lib "$FindBin::Bin/..";
-use lib "$FindBin::Bin/../dex";
-use lib "$FindBin::Bin/dex";
-use local::lib '/home/pi/perl5';
-
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'09d7', prod=>'0100');
@@ -97,6 +91,7 @@ if (!$NGSERLOG) {
 	name         => 'ngserlog_novatel2txt',
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_novatel2txt.pl' ],
+	init_config  => '/etc/default/hgpstools',
 	user         => 'pi',
 	group        => 'dialout',
 	umask        => oct('0027'),

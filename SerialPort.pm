@@ -80,9 +80,12 @@ instead of installing them to the system Perl.
     # When asked if you want automatic config, say yes
     # When asked what appraoch you want, choose local::lib
     # When asked by the local::lib install whether you want to
-    #   append the local::lib stuff to .bashrc, say yes
+    #   append the local::lib stuff to .bashrc, BE CAREFUL*
  # log out and back in to make sure local::lib config is in effect
  cpan IO::Termios
+
+* Say B<no> to this question if you are planning to or already have set up the
+C<local::lib> environment variables, for example via C</etc/default/hgpstools>.
 
 =head1 Methods
 

@@ -37,7 +37,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 =cut
 
 use FindBin ();
-use lib $FindBin::Bin; # also for DexPostRequest.pm
 use DexConfig qw/ $DEX_PATH $RAWDATA_PATH $POST_AUTH_USER $POST_AUTH_REALM
 	$POST_AUTH_HASH $STATICFILES_PATH $POST_APPS_PATH /;
 use List::Util qw/max/;
