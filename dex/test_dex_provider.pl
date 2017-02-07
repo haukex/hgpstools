@@ -59,7 +59,7 @@ while ($run) {
 	$dex{cpt6100_port1}->provide({pressure=>2345});
 	$dex{cpt6100_port2}->provide({pressure=>3456});
 	$dex{cpt6100_port3}->provide({pressure=>4567});
-	#TODO: Provide some better fake data
+	#TODO: Provide some better fake novatel data
 	$dex{novatel}->provide({record=>'fake novatel'});
 	sleep(0.333333333333333);
 }
