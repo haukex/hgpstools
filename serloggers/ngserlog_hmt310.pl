@@ -36,6 +36,7 @@ use FindBin;
 use lib "$FindBin::Bin/..";
 use local::lib '/home/pi/perl5';
 
+our $LOGGER_NAME = 'ngserlog_hmt310';
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'1843', prod=>'0200');
@@ -120,7 +121,7 @@ our $NGSERLOG;
 if (!$NGSERLOG) {
 	require Daemon::Control;
 	exit Daemon::Control->new(
-	name         => 'ngserlog_hmt310',
+	name         => $LOGGER_NAME,
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_hmt310.pl' ],
 	user         => 'pi',

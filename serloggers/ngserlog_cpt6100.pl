@@ -47,6 +47,8 @@ die "You need to set the CPT_FTDI_PORT environment variable, "
 	unless length $ENV{CPT_FTDI_PORT} && $ENV{CPT_FTDI_PORT}=~/^port([0-3])$/i;
 my $FTDIPORT = $1;
 
+my $DNAME = "cpt6100_port$FTDIPORT";
+our $LOGGER_NAME = "ngserlog_$DNAME";
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'0403', prod=>'6011');
@@ -192,13 +194,12 @@ our $HANDLE_STATUS = sub {
 	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
 };
 
-my $DNAME = "cpt6100_port$FTDIPORT";
 our $OUTFILE = "/home/pi/data/${DNAME}_data.txt";
 our $NGSERLOG;
 if (!$NGSERLOG) {
 	require Daemon::Control;
 	exit Daemon::Control->new(
-	name         => "ngserlog_$DNAME",
+	name         => $LOGGER_NAME,
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_cpt6100.pl' ],
 	init_code    => qq{export CPT_FTDI_PORT="port$FTDIPORT"\n},

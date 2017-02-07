@@ -24,7 +24,7 @@ log file with the following example configuration file,
 F</etc/rsyslog.d/00-ngserlog.conf>:
 
  $template ngserlogFormat,"%timegenerated% %pri-text% %syslogtag%%msg:::drop-last-lf%\n"
- if $programname == 'ngserlog' then /var/log/ngserlog.log;ngserlogFormat
+ if $programname startswith 'ngserlog' then /var/log/ngserlog.log;ngserlogFormat
  & ~
 
 The process can be stopped cleanly via a C<SIGTERM> or C<SIGINT>
@@ -95,6 +95,13 @@ callbacks in this script, such changes to C<$/> would have to be made
 globally, which may affect other pieces of code!
 (If for some reason setting C<$/> globally is still necessary,
 L</$ON_CONNECT> is the best place to do so.)
+
+=head3 C<$LOGGER_NAME>
+
+A name which identifies this logger, currently primarily for C<syslog>
+messages. Defaults to C<ngserlog>, and note that if you want the logging
+messages to match the C<rsyslog> filter described above, then the name
+needs to begin with C<ngserlog>!
 
 =head3 C<$GET_PORT>
 
@@ -217,6 +224,7 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 =cut
 
 # ### Default Settings ###
+our $LOGGER_NAME = 'ngserlog';
 our $GET_PORT = sub { die "Configuration file does not define \$GET_PORT" };
 our $READ_SIZE = 0;
 our $HANDLE_LINE = sub { $_.="\n" };
@@ -250,7 +258,7 @@ require $CONFIGFILE;
 pod2usage if @ARGV;
 
 my $syslogopts = $SYSLOG_TO_STDERR ? 'ndelay,pid,perror' : 'ndelay,pid';
-openlog('ngserlog',$syslogopts,'user');
+openlog($LOGGER_NAME,$syslogopts,'user');
 sub info {
 	chomp(my $msg = shift);
 	warn "Too many arguments to info()\n" if @_;

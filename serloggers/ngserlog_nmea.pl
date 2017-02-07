@@ -86,6 +86,7 @@ use FindBin;
 use lib "$FindBin::Bin/..";
 use local::lib '/home/pi/perl5';
 
+our $LOGGER_NAME = 'ngserlog_nmea';
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
 	my @devs = ident_usbser(vend=>'067b', prod=>'2303'); # Navilock NL-302U
@@ -135,7 +136,7 @@ our $NGSERLOG;
 if (!$NGSERLOG) {
 	require Daemon::Control;
 	exit Daemon::Control->new(
-	name         => 'ngserlog_nmea',
+	name         => $LOGGER_NAME,
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_nmea.pl' ],
 	user         => 'pi',
