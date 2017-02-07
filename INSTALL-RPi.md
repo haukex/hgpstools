@@ -115,7 +115,35 @@ according to the installation instructions:
 4.	In a suitable directory (like `/home/pi`) do:
 `git clone --recursive https://bitbucket.org/haukex/hgpstools.git`
 	
-5.	Unless you're using a fixed IP address, you can set up a way for the RPi
+5.	Ensure that the Perl library path is set correctly. In the `hgpstools`
+	project, there are several `*.pm` files whose paths need to be provided
+	to Perl. There are several mechanisms to do this, but the environment
+	variable `PERL5LIB` is the most global. Also, if you install any modules
+	with `local::lib` (for example, the `SerialPort.pm` documentation
+	currently describes how to do this), then that configuration also needs
+	to be set up for anyone who runs the scripts. The standard location we
+	will use is the `/etc/default/hgpstools` script.
+	
+	**Note** If you install any modules using `local::lib`, when it is first
+	run, it may ask you if you want to add the appropriate configuration
+	lines to `.bashrc`. If you use the following commands, this will not be
+	necessary!
+	
+	Here is one way to set up `/etc/default/hgpstools`. Of course the paths
+	here should be adapted to your configuration. Note that absolute
+	pathnames must be used, as any user should be able to execute it,
+	especially including `root`, because of the daemons.
+	
+		# add the paths required for hgpstools scripts
+		echo 'PERL5LIB="/home/pi/hgpstools:/home/pi/hgpstools/dex${PERL5LIB+:}${PERL5LIB}"; export PERL5LIB;' | sudo tee /etc/default/hgpstools
+		# add the local::lib configuration
+		PERL5LIB= perl -Mlocal::lib=/home/pi/perl5,--no-create | sudo tee -a /etc/default/hgpstools
+		# set up for future login shells
+		echo '[ -r /etc/default/hgpstools ] && . /etc/default/hgpstools' >>/home/pi/.bashrc
+		# set up for current shell
+		. /etc/default/hgpstools
+	
+6.	Unless you're using a fixed IP address, you can set up a way for the RPi
 to broadcast its IP address as described in `udplisten.pl` and/or `my_ip.pl`.
 (When making entries in `crontab`, don't forget to use the correct pathnames.)
 	
@@ -138,7 +166,7 @@ to broadcast its IP address as described in `udplisten.pl` and/or `my_ip.pl`.
 	by commenting out the entry in the `rsyslog` configuration that
 	writes to `/dev/xconsole`.
 	
-6.	In case you're using a Raspberry Pi 3 with a GPS add-on board
+7.	In case you're using a Raspberry Pi 3 with a GPS add-on board
 that connects directly to the Raspberry Pi's GPIO UART pins,
 you may have to apply the following workaround.
 This is because on the Raspberry Pi 3, the Bluetooth Modem uses
@@ -159,7 +187,7 @@ module and applies to Raspbian Jessie >= 2016-03-18.
 	d.	If necessary, you'll need to disable the serial console as per your
 	GPS board's instructions. Also make sure to reboot.
 	
-7.	The *most current* information to install the NMEA logging daemon is in the files
+8.	The *most current* information to install the NMEA logging daemon is in the files
 referenced below! Here is a short summary of the steps needed at the time of writing:
 (TODO: Update these instructions for the change from `serlog.pl` to `ngserlog.pl`.
 For now please see `ngserlog.pl` and `ngserlog_nmea.pl` for instructions.)

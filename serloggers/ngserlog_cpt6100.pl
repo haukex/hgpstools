@@ -38,10 +38,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use FindBin;
-use lib "$FindBin::Bin/..";
-use local::lib '/home/pi/perl5';
-
 die "You need to set the CPT_FTDI_PORT environment variable, "
 	."acceptable values are port0, port1, port2, port3\n"
 	unless length $ENV{CPT_FTDI_PORT} && $ENV{CPT_FTDI_PORT}=~/^port([0-3])$/i;
@@ -144,6 +140,8 @@ our $ON_STOP = sub {
 };
 
 use Time::HiRes qw/ gettimeofday /;
+use DexProvider ();
+my $DEX = DexProvider->new(srcname=>"cpt6100_port$FTDIPORT", interval_s=>1, dexpath=>'_FROM_CONFIG');
 our $HANDLE_LINE = sub {
 	state $sumerrors = 0;
 	state $resyncing = 0;
@@ -155,6 +153,8 @@ our $HANDLE_LINE = sub {
 		return;
 	}
 	if ( my ($val,$hex) = press_decode($_) ) {
+		# This is a real data value.
+		$DEX->provide({pressure=>$val});
 		$_ = sprintf "%d.%06d\t0x%s\t%f\n", gettimeofday, $hex, $val;
 		$sumerrors = 0;
 	}
@@ -202,6 +202,7 @@ if (!$NGSERLOG) {
 	name         => $LOGGER_NAME,
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_cpt6100.pl' ],
+	init_config  => '/etc/default/hgpstools',
 	init_code    => qq{export CPT_FTDI_PORT="port$FTDIPORT"\n},
 	user         => 'pi',
 	group        => 'dialout',

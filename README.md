@@ -42,7 +42,6 @@ have a look around this repository to discover all the available scripts.
 	initial setup of a Raspberry Pi.
 	
 *	**`RPi3_Adafruit-GPS_NTP-chrony.md`**  
-	with `gpsd2file.pl`, `gpsd2file_daemon.pl`, and `rpiweb/*`
 	
 	Instructions and tools to build a standalone GPS-synchronized NTP
 	server with a Raspberry Pi 3, an Adafruit "GPS Hat", and `chrony`.

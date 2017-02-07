@@ -61,10 +61,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use FindBin;
-use lib "$FindBin::Bin/..";
-use local::lib '/home/pi/perl5';
-
 our $LOGGER_NAME = 'ngserlog_novatel1ctrl';
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
@@ -172,6 +168,7 @@ if (!$NGSERLOG) {
 	name         => $LOGGER_NAME,
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_novatel1ctrl.pl' ],
+	init_config  => '/etc/default/hgpstools',
 	user         => 'pi',
 	group        => 'dialout',
 	umask        => oct('0027'),

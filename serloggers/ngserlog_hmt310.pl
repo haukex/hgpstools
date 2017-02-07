@@ -32,10 +32,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use FindBin;
-use lib "$FindBin::Bin/..";
-use local::lib '/home/pi/perl5';
-
 our $LOGGER_NAME = 'ngserlog_hmt310';
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
@@ -108,13 +104,48 @@ our $ON_STOP = sub {
 };
 
 use Time::HiRes qw/ gettimeofday /;
+use DexProvider ();
+my $DEX = DexProvider->new(srcname=>'hmt310', interval_s=>1, dexpath=>'_FROM_CONFIG');
 our $HANDLE_LINE = sub {
+	return unless length;
 	# We currently don't do any further checking of the lines; there is no checksum
-	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
+	if (my $rec = parse_hmt($_)) {
+		$DEX->provide({ data=>
+			[ map { [$_,$$rec{val},$$rec{unit}] } sort keys %$rec ] });
+	}
+	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_);
 };
 our $HANDLE_STATUS = sub {
 	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_) if length $_;
 };
+
+# stuff for parse_hmt
+use Carp;
+use 5.014; no feature 'switch';
+my $HMT_REC_RE =
+	qr{ \s* \b
+	(?<name> \w+ ) = \s*
+	(?<value> -? (?:\d*\.)? \d+ )
+	(?: \s*  # unit is optional
+		# a unit should not look like a new value
+		(?<unit> (?! \w+ = \s* [\-\d\.] ) \S+ )
+	)?
+	\b \s* }msxaa;
+sub parse_hmt {
+	my $rec = shift;
+	croak "too many arguments to parse_hmt" if @_;
+	my %rec;
+	pos($rec)=undef;
+	while ($rec=~/\G$HMT_REC_RE/gc) {
+		carp "HMT310 duplicate value \"$+{name}\"" if $rec{$+{name}};
+		$rec{$+{name}} = { val=>$+{value} };
+		$rec{$+{name}}{unit} = $+{unit} if defined $+{unit};
+	}
+	if (length($rec)!=pos($rec)) {
+		carp "Not an HMT310 record? \"$rec\"";
+		return }
+	return \%rec;
+}
 
 our $OUTFILE = '/home/pi/data/hmt310_data.txt';
 our $NGSERLOG;
@@ -124,6 +155,7 @@ if (!$NGSERLOG) {
 	name         => $LOGGER_NAME,
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_hmt310.pl' ],
+	init_config  => '/etc/default/hgpstools',
 	user         => 'pi',
 	group        => 'dialout',
 	umask        => oct('0027'),

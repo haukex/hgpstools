@@ -35,10 +35,6 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 =cut
 
-use FindBin;
-use lib "$FindBin::Bin/..";
-use local::lib '/home/pi/perl5';
-
 our $LOGGER_NAME = 'ngserlog_novatel2txt';
 use IdentUsbSerial 'ident_usbser';
 our $GET_PORT = sub {
@@ -60,6 +56,8 @@ sub novatelcrc {
 		->add($data)->digest;
 }
 
+use DexProvider ();
+my $DEX = DexProvider->new(srcname=>'novatel', interval_s=>1, dexpath=>'_FROM_CONFIG');
 our $HANDLE_LINE = sub {
 	my $err;
 	if (my ($msg,$got) = /\A#(.*)\*([0-9a-fA-F]{8})\z/) {
@@ -73,7 +71,12 @@ our $HANDLE_LINE = sub {
 		warn "$err; ignoring input \"$_\"\n";
 		$_ = undef;
 	}
-	else { $_ .= "\n" }
+	else {
+		# This is a real data value.
+		#TODO: Only provide certain parsed records.
+		$DEX->provide({record=>$_});
+		$_ .= "\n";
+	}
 };
 our $HANDLE_STATUS = sub {
 	# don't log status messages into data stream
@@ -89,6 +92,7 @@ if (!$NGSERLOG) {
 	name         => $LOGGER_NAME,
 	program      => '/home/pi/hgpstools/ngserlog.pl',
 	program_args => [ '/home/pi/hgpstools/serloggers/ngserlog_novatel2txt.pl' ],
+	init_config  => '/etc/default/hgpstools',
 	user         => 'pi',
 	group        => 'dialout',
 	umask        => oct('0027'),
