@@ -111,6 +111,7 @@ builder {
 		mount '/listwidgets' => $app_listwidgets;
 		mount '/rawdata' =>
 			Plack::App::Directory->new({root=>$RAWDATA_PATH})->to_app;
+		# TODO: Can we disable logging of /get requests?
 		mount '/get' => builder {
 			# commented out JSONP because we're serving the main page ourselves
 			#enable 'JSONP';

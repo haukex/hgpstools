@@ -95,8 +95,12 @@ our $STARMAN_LISTEN = ':5000'; # see doc of "starman" command
 #TODO: Logs would normally not be in /var/run, this is just for testing.
 our $STARMAN_STDERR_FILE = "$DEX_RESOURCE_DIR/dex_starman_err.txt";
 our $STARMAN_ACCESS_LOG = "$DEX_RESOURCE_DIR/dex_starman_accesslog.txt";
-our $SERVER_USER = 'nobody';
-our $SERVER_GROUP = 'nogroup';
+#TODO: Document piweb user in a more prominent place
+# $ sudo adduser --system --group --disabled-login --no-create-home piweb
+# in /etc/sudoers (via "sudo visudo"):
+# piweb ALL = NOPASSWD: /bin/echo, /sbin/poweroff, /sbin/reboot, /usr/sbin/service
+our $SERVER_USER = 'piweb';
+our $SERVER_GROUP = 'piweb';
 
 # The path in which the .json files are placed by DexProvider.
 # Will be automatically created by dex_starman.pl
