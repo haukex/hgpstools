@@ -40,6 +40,8 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 use FindBin;
 use lib "$FindBin::Bin/..";
+use lib "$FindBin::Bin/../dex";
+use lib "$FindBin::Bin/dex";
 use local::lib '/home/pi/perl5';
 
 die "You need to set the CPT_FTDI_PORT environment variable, "
@@ -142,6 +144,8 @@ our $ON_STOP = sub {
 };
 
 use Time::HiRes qw/ gettimeofday /;
+use DexProvider ();
+my $DEX = DexProvider->new(srcname=>"cpt6100_port$FTDIPORT", interval_s=>1, dexpath=>'_FROM_CONFIG');
 our $HANDLE_LINE = sub {
 	state $sumerrors = 0;
 	state $resyncing = 0;
@@ -153,6 +157,8 @@ our $HANDLE_LINE = sub {
 		return;
 	}
 	if ( my ($val,$hex) = press_decode($_) ) {
+		# This is a real data value.
+		$DEX->provide({pressure=>$val});
 		$_ = sprintf "%d.%06d\t0x%s\t%f\n", gettimeofday, $hex, $val;
 		$sumerrors = 0;
 	}

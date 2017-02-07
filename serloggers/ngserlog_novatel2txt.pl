@@ -37,6 +37,8 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 
 use FindBin;
 use lib "$FindBin::Bin/..";
+use lib "$FindBin::Bin/../dex";
+use lib "$FindBin::Bin/dex";
 use local::lib '/home/pi/perl5';
 
 use IdentUsbSerial 'ident_usbser';
@@ -59,6 +61,8 @@ sub novatelcrc {
 		->add($data)->digest;
 }
 
+use DexProvider ();
+my $DEX = DexProvider->new(srcname=>'novatel', interval_s=>1, dexpath=>'_FROM_CONFIG');
 our $HANDLE_LINE = sub {
 	my $err;
 	if (my ($msg,$got) = /\A#(.*)\*([0-9a-fA-F]{8})\z/) {
@@ -72,7 +76,12 @@ our $HANDLE_LINE = sub {
 		warn "$err; ignoring input \"$_\"\n";
 		$_ = undef;
 	}
-	else { $_ .= "\n" }
+	else {
+		# This is a real data value.
+		#TODO: Only provide certain parsed records.
+		$DEX->provide({record=>$_});
+		$_ .= "\n";
+	}
 };
 our $HANDLE_STATUS = sub {
 	# don't log status messages into data stream
