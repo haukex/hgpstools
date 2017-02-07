@@ -19,4 +19,27 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// TODO: Add POST commands here
+//TODO: Add commands to start & stop logger services
+
+var btn_reboot = $('<button/>',
+	{ text: "System Reboot", class: "post_cmd",
+		click: function() {
+			do_post("sys_control", { command:"reboot" } );
+		}
+	} );
+$('#post_commands')
+	.append('<div/>')
+	.append(btn_reboot);
+add_btn_confirm(btn_reboot);
+
+var btn_poweroff = $('<button/>',
+	{ text: "System Shutdown", class: "post_cmd",
+		click: function() {
+			if (confirm("WARNING: Are you sure you want to power down?"))
+				do_post("sys_control", { command:"poweroff" } );
+		}
+	} );
+$('#post_commands')
+	.append('<div/>')
+	.append(btn_poweroff);
+add_btn_confirm(btn_poweroff);
