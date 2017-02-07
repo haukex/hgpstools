@@ -192,6 +192,12 @@ as per the instructions in `INSTALL-RPi.md` from:
 	
 7.	**Web Interface**
 	
+	**TODO:** This web interface has been deprecated and replaced by the
+	"DataEXChange" (DEX) system. You only need to set up `gpsd2file_daemon.pl`
+	as described in the `Daemon_Control.md` instructions. See the DEX files
+	for details on setting that up. This documentation needs to be updated
+	accordingly (i.e. remove most of the following).
+	
 	a.	Setting up `gpsd2file.pl` as daemon:
 	`sudo apt-get install lighttpd libjson-maybexs-perl libcapture-tiny-perl`, then
 	follow the steps in `gpsd2file_daemon.pl`

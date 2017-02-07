@@ -16,6 +16,10 @@ for usage information.
 Note on Debian-based systems it should be possible to install Starman
 via CPAN or C<sudo apt-get install starman>.
 
+TODO: HTTPS. That is still marked as experimental in Starman, but see
+F<RPi3_Adafruit-GPS_NTP-chrony.md> - perhaps we could use lighttpd as a
+frontend proxy to provide SSL.
+
 =head1 AUTHOR, COPYRIGHT, AND LICENSE
 
 Copyright (c) 2017 Hauke Daempfling (haukex@zero-g.net)
