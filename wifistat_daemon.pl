@@ -59,12 +59,12 @@ exit Daemon::Control->new(
 
 use FindBin;
 use Capture::Tiny 'capture';
-use JSON::MaybeXS qw/encode_json/;
+use DexProvider ();
 
 sub wifistat {
+	#TODO: A widget to display data from wifistat
+	my $DEX = DexProvider->new(srcname=>'wifistat', dexpath=>'_FROM_CONFIG');
 	my $MAX_ERRORS = 100;
-	my $OUTFILE = '/var/run/wifistat/wifistat.json';
-	my $OUTFILE_TMP = "$OUTFILE.tmp";
 	my @COMMANDS = (
 			[qw/ ifconfig -a /],
 			[qw/ iwconfig /],
@@ -94,14 +94,10 @@ sub wifistat {
 				else
 					{ warn $msg }
 			}
+			#TODO Later: We might want to parse the output of the commands further.
 			$data{"@$cmd"} = {stdout=>$stdout, stderr=>$stderr, exit=>$exit};
 		}
-		open my $ofh, '>', $OUTFILE_TMP
-			or die "Failed to open $OUTFILE_TMP for write: $!";
-		print $ofh encode_json(\%data), "\n";
-		close $ofh;
-		rename $OUTFILE_TMP, $OUTFILE
-			or die "Failed to rename $OUTFILE_TMP to $OUTFILE: $!";
+		$DEX->provide(\%data);
 		sleep(60*2);
 	}
 }
