@@ -85,6 +85,8 @@ sub provide {
 		SUFFIX=>'.tmp', DIR=>$self->{dexpath} );
 	print $tfh encode_json($data);
 	close $tfh;
+	# File::Temp is hardcoded to create files with 0600, fix that now
+	chmod(0666&~umask,$tfn) or carp "provide: Couldn't chmod $tfn";
 	if (!rename($tfn, $self->{filename})) {
 		carp "provide: Renaming $tfn to $self->{filename} failed: $!";
 		unlink($tfn);
