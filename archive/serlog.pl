@@ -223,7 +223,7 @@ MAINLOOP: while($run) {
 		# handle a line
 		if ($in eq "\x0A") {
 			local $_ = $buf;
-			#TODO Later: Handle CR as well?
+			# Old TO-DO: Handle CR as well?
 			s/\x0D$//; # CRLF -> LF (that means we handle LF and CRLF, but not pure CR)
 			$HANDLE_LINE->(); # feed chomped line through user code
 			print $_ if length $_;
