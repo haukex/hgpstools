@@ -111,7 +111,7 @@ our $HANDLE_LINE = sub {
 	# We currently don't do any further checking of the lines; there is no checksum
 	if (my $rec = parse_hmt($_)) {
 		$DEX->provide({ data=>
-			[ map { [$_,$$rec{val},$$rec{unit}] } sort keys %$rec ] });
+			[ map { [$_,$$rec{$_}{val},$$rec{$_}{unit}] } sort keys %$rec ] });
 	}
 	$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_);
 };
