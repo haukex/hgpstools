@@ -44,6 +44,7 @@ use DexConfig qw/ $DEX_PATH $RAWDATA_PATH $POST_AUTH_USER $POST_AUTH_REALM
 use List::Util qw/max/;
 use Path::Class qw/dir/;
 use Time::HiRes qw/gettimeofday/;
+use Sys::Hostname qw/hostname/;
 use JSON::MaybeXS qw/decode_json encode_json/;
 use Plack::Builder qw/builder enable mount/;
 use Plack::Request ();
@@ -54,6 +55,7 @@ use Plack::Middleware::Auth::Digest ();
 
 $STATICFILES_PATH //= "$FindBin::Bin/static";
 $POST_APPS_PATH //= "$FindBin::Bin/post_apps";
+my $HOSTNAME = hostname;
 
 my %post_apps =
 	map { (my $x=$_->basename)=~s/\.psgi$//; $x => $_ }
@@ -62,7 +64,10 @@ my %post_apps =
 
 my $app_get = sub {
 	my $req = Plack::Request->new(shift);
-	my %the_data = ( _servertime => sprintf("%d.%06d",gettimeofday) );
+	my %the_data = (
+			_servertime => sprintf("%d.%06d",gettimeofday),
+			_hostname => $HOSTNAME,
+		);
 	if (-d $DEX_PATH) {
 		for my $file (dir($DEX_PATH)->children) {
 			next unless -f $file;

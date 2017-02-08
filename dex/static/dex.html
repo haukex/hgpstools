@@ -67,6 +67,9 @@ button.btn_confirm {
 	top: 20%;
 	font-weight: bold;
 }
+#server_hostname {
+	font-weight: bold;
+}
 /* ]]> */-->
 	</style>
 	<link rel="stylesheet" type="text/css" href="widgets.css" />
@@ -120,6 +123,7 @@ function do_fetch () {
 				$('#req_status').addClass("status_err").removeClass("status_ok status_warn")
 					.text("Server Error: "+response._error);
 				return }
+			$('#server_hostname').text(response._hostname);
 			last_rx_dt = new Date();
 			$('#last_rx_time').text(last_rx_dt.toISOString());
 			$('#last_rx_age').text("0.000 s");
@@ -336,6 +340,10 @@ function check_duplicate_ids () { // for debugging
 
 <div class="widget" id="dex_main">
 <table class="small">
+<tr>
+	<td>Server hostname:</td>
+	<td><span id="server_hostname">?</span></td>
+</tr>
 <tr>
 	<td>Most recent request status:</td>
 	<td><span id="req_status">?</span></td>
