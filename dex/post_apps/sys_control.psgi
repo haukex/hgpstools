@@ -35,17 +35,33 @@ use Capture::Tiny qw/capture/;
 
 wrap_dex_post_request sub {
 	my $in = shift;
-	die "no command\n" unless $in->{command};
-	die "invalid command\n"
-		unless $in->{command} eq 'reboot'
-			|| $in->{command} eq 'poweroff';
-	my ($stdout,$stderr) = capture {
-		#TODO: Take the "safety" off of sys_control
-		system('sudo','echo','fake',$in->{command})==0
-			or warn "command failed, \$?=$?";
+	die "invalid command\n" unless $in->{command}
+		&& $in->{command}=~/\A(?:reboot|poweroff|service)\z/;
+	my @cmd = ('sudo',$in->{command});
+	if ($in->{command} eq 'service') {
+		die "invalid service command\n"
+			unless $in->{args} && @{$in->{args}}==2;
+		my ($srv_name,$srv_cmd) = @{$in->{args}};
+		die "invalid service command\n"
+			unless $srv_name && $srv_name=~/\A(?:ngserlog_[a-zA-Z0-9_]+)\z/;
+		die "invalid service command\n"
+			unless $srv_cmd && $srv_cmd=~/\A(?:start|stop|status)\z/;
+		push @cmd, $srv_name, $srv_cmd;
+	}
+	my ($stdout, $stderr) = capture {
+		system(@cmd);
+		if ($? != 0) {
+			if ($? == -1)
+				{ warn "# Failed to execute: $!\n" }
+			elsif ($? & 127)
+				{ warn sprintf "# Child died with signal %d, %s coredump\n",
+				($? & 127),  ($? & 128) ? 'with' : 'without' }
+			else
+				{ warn "# Child exited with value ".($?>>8)."\n" }
+		}
 	};
 	return {
-		text => "Command Executed.\n".$stdout
-			.(length $stderr?"\n# STDERR:\n$stderr":'')
+		text => "Command \"@cmd\" Executed.\n$stdout"
+			.(length $stderr?"\n# WARNING/ERROR:\n$stderr":'')
 	}
 }
