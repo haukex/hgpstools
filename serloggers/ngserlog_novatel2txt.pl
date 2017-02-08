@@ -95,7 +95,7 @@ if (!$NGSERLOG) {
 	init_config  => '/etc/default/hgpstools',
 	user         => 'pi',
 	group        => 'dialout',
-	umask        => oct('0027'),
+	umask        => oct('0022'),
 	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	# note that since we use the "outfile" option above, the stdout_file *should* remain empty
 	stdout_file  => '/home/pi/logs/novatel2txt_out.txt',

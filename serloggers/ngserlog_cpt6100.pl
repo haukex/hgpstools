@@ -206,7 +206,7 @@ if (!$NGSERLOG) {
 	init_code    => qq{export CPT_FTDI_PORT="port$FTDIPORT"\n},
 	user         => 'pi',
 	group        => 'dialout',
-	umask        => oct('0027'),
+	umask        => oct('0022'),
 	help         => "Please run `perldoc ".__FILE__."` for help.\n",
 	# note that since we use the "outfile" option above, the stdout_file *should* remain empty
 	stdout_file  => "/home/pi/logs/${DNAME}_out.txt",
