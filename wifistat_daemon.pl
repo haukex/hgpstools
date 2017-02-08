@@ -88,7 +88,7 @@ sub wifistat {
 				if ($? == -1)
 					{ $msg = "failed to execute: $!" }
 				elsif ($? & 127)
-					{ $msg = sprintf "child died with signal %d, %s ",
+					{ $msg = sprintf "child died with signal %d, %s coredump",
 					($? & 127),  ($? & 128) ? 'with' : 'without' }
 				if (++$errors>$MAX_ERRORS)
 					{ die $msg }
