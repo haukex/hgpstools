@@ -11,7 +11,9 @@ B<Alpha testing version!>
 
 =head1 DETAILS
 
-Run me in any PSGI server, like
+See F<dex_starman.pl> for how to run this as a service.
+
+Or, run me in any PSGI server, like
 
  plackup dex.psgi
 

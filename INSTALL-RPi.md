@@ -127,7 +127,8 @@ according to the installation instructions:
 	**Note** If you install any modules using `local::lib`, when it is first
 	run, it may ask you if you want to add the appropriate configuration
 	lines to `.bashrc`. If you use the following commands, this will not be
-	necessary!
+	necessary! Or, if you've already had `local::lib` add its entries to
+	the bottom of `.bashrc`, you should probably replace them with the below.
 	
 	Here is one way to set up `/etc/default/hgpstools`. Of course the paths
 	here should be adapted to your configuration. Note that absolute

@@ -98,7 +98,7 @@ our $STARMAN_ACCESS_LOG = "$DEX_RESOURCE_DIR/dex_starman_accesslog.txt";
 #TODO Later: Document piweb user in a more prominent place
 # $ sudo adduser --system --group --disabled-login --no-create-home piweb
 # in /etc/sudoers (via "sudo visudo"):
-# piweb ALL = NOPASSWD: /bin/echo, /sbin/poweroff, /sbin/reboot, /usr/sbin/service
+# piweb ALL = NOPASSWD: /bin/echo, /sbin/poweroff, /sbin/reboot, /usr/sbin/service ngserlog_[A-Za-z0-9]*
 our $SERVER_USER = 'piweb';
 our $SERVER_GROUP = 'piweb';
 
