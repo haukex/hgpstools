@@ -70,6 +70,10 @@ button.btn_confirm {
 #server_hostname {
 	font-weight: bold;
 }
+#srv_cmd_response {
+	border: 1px solid black;
+	padding: 2px 1px;
+}
 /* ]]> */-->
 	</style>
 	<link rel="stylesheet" type="text/css" href="widgets.css" />
@@ -172,13 +176,14 @@ function set_post_btn_state(enable) {
 }
 function do_post(cmd, data) {
 	set_post_btn_state(false);
-	$('#srv_cmd_response').append('##### Command "'+cmd+'" #####'+"\n");
+	$('#srv_cmd_response').append('Sending Command "'+cmd+'"...'+"\n");
 	$.ajax({
 		type: "POST",
 		url: "/post/"+cmd,
 		data: JSON.stringify(data),
 		dataType: "json",
 		success: function (response) {
+			$('#srv_cmd_response').append('##### Command "'+cmd+'" #####'+"\n");
 			if (!response._error && response._ok) {
 				if (response.data)
 					$('#srv_cmd_response').append(JSON.stringify(response.data, null, 2)+"\n");
@@ -222,6 +227,9 @@ function add_btn_confirm (btn) {
 }
 $(document).ready(function() {
 	$('button.btn_confirm').each(function() { add_btn_confirm($(this)) });
+	$('button#clear_srv_response').click(function() {
+		$('#srv_cmd_response').empty();
+	});
 	var ajax_left = 2; // ensure *all* ajax requests are done, even chained ones
 	$(document).ajaxStop(function() {
 		console.log("ajaxStop: ajax_left="+ajax_left);
@@ -376,6 +384,7 @@ function check_duplicate_ids () { // for debugging
 
 <div class="widget" id="srv_cmds">
 <div id="post_commands"></div>
+<div><button id="clear_srv_response">Clear Responses</button></div>
 <pre id="srv_cmd_response"></pre>
 </div>
 
