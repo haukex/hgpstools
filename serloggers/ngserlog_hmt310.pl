@@ -120,6 +120,7 @@ our $HANDLE_STATUS = sub {
 };
 
 # stuff for parse_hmt
+# NOTE this regex is almost the same as parse_hmt310.pl
 use Carp;
 use 5.014; no feature 'switch';
 my $HMT_REC_RE =
