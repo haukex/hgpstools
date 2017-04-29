@@ -1,0 +1,18 @@
+
+# ### Configuration for sermuxsrv_daemon.pl (system-wide) ###
+# Copy me to /etc/default/sermuxsrv
+# and adjust the variables below to match your system
+
+[ -r /etc/default/hgpstools ] && . /etc/default/hgpstools
+
+# ### User-Settable Variables ###
+
+SERMUXSRV_USER="pi"
+SERMUXSRV_GROUP="dialout"
+SERMUXSRV_CONFIG="/home/pi/hgpstools/sermux/test/novatel_muxtest.conf.json"
+
+# ###
+
+export SERMUXSRV_USER
+export SERMUXSRV_GROUP
+export SERMUXSRV_CONFIG

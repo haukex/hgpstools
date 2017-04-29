@@ -1,0 +1,26 @@
+{
+	"debug"    : 4,
+	"bindaddr" : "127.0.0.1",
+	"services" : {
+		"1_ctl" : {
+			"serport" : "/tmp/fakenova1",
+			"sermode" : "115200,8,n,1",
+			"__comment" : "Using 'binary' here to disable line buffering",
+			"binary"  : 1,
+			"srvport" : 12341
+		},
+		"2_txt" : {
+			"serport" : "/tmp/fakenova2",
+			"sermode" : "115200,8,n,1",
+			"logfile" : "/tmp/nova2.log",
+			"srvport" : 12342
+		},
+		"3_bin" : {
+			"serport" : "/tmp/fakenova3",
+			"sermode" : "115200,8,n,1",
+			"binary"  : 1,
+			"logfile" : "/tmp/nova3.log",
+			"srvport" : 12343
+		}
+	}
+}
