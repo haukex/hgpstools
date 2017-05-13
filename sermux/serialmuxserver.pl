@@ -254,6 +254,7 @@ for my $service ( sort keys %{ $config->{services} } ) {
 			my ($op,$errnum,$errstr) = @_[ARG0,ARG1,ARG2];
 			if ($op eq 'read' && $errnum==0) {
 				_debug(1,$serialname,"EOF (unplugged?), waiting");
+				delete $_[HEAP]{serial_wheel};
 				$_[KERNEL]->delay(serial_try_open => 1);
 			}
 			else {
