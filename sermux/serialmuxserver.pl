@@ -29,7 +29,7 @@ become a beta/release version:
 
 A few notes: Since not all JSON parsers support comments, these can
 currently be implemented using hash entries with the keys beginning
-with "__", I<except> in the C<services> hash!
+with "__".
 
 =head1 Author, Copyright, and License
 
@@ -106,6 +106,7 @@ inline_states => {
 } );
 
 for my $service ( sort keys %{ $config->{services} } ) {
+	next if $service =~ /^__/; # "comments"
 	my $conf = $config->{services}{$service};
 	my $servername = "server_$service";
 	my $serialname = "serial_$service";
