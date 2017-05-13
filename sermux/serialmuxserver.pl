@@ -186,6 +186,7 @@ for my $service ( sort keys %{ $config->{services} } ) {
 		open $logfh, '>>', $conf->{logfile}
 			or die "Failed to open ".$conf->{logfile}." for append: $!\n";
 		binmode $logfh if $conf->{binary};
+		$logfh->autoflush;
 	}
 	POE::Session->create(
 	options => { @POE_DEBUG_OPTS },
@@ -233,10 +234,7 @@ for my $service ( sort keys %{ $config->{services} } ) {
 		serial_input => sub {
 			my ($kernel,$input) = @_[KERNEL,ARG0];
 			_debug(3,$serialname,"Rx: ".pp($input));
-			if (defined $logfh) {
-				print {$logfh} $input;
-				print {$logfh} "\n" unless $conf->{binary};
-			}
+			print {$logfh} $input, $conf->{binary}?():"\n" if defined $logfh;
 			$kernel->post($servername => broadcast => $input);
 		},
 		do_shutdown => sub {
