@@ -189,24 +189,33 @@ for my $service ( sort keys %{ $config->{services} } ) {
 			$_[KERNEL]->yield('serial_try_open');
 		},
 		serial_try_open => sub {
+			my $theport = $conf->{serport}//"";
 			my $redo = sub {
 				# adjust debug level based on whether the message has been shown or not
 				_debug( $_[HEAP]{usr_msg_open_attempts}++ ? 3 : 1 ,
-					$serialname,"Port ".$conf->{serport}." doesn't exist, waiting");
+					$serialname,"Port $theport doesn't exist, waiting");
 				$_[KERNEL]->delay(serial_try_open => 1) };
-			if (!-e $conf->{serport}) { $redo->(@_); return }
+			if ($conf->{identusbser}) {
+				$theport = "";
+				eval "use IdentUsbSerial qw/ident_usbser/; 1" or die "Failed to load IdentUsbSerial: $@";
+				my @devs = ident_usbser( map { $_ => $conf->{identusbser}{$_} } qw/ vend prod ser / );
+				if ( $conf->{identusbser}{idx} > $#devs ) { $redo->(@_); return }
+				$theport = $devs[ $conf->{identusbser}{idx} ]{devtty};
+				_debug(1,$serialname, "IdentUsbSerial: $theport");
+			}
+			if (!length($theport) || !-e $theport) { $redo->(@_); return }
 			$_[HEAP]{usr_msg_open_attempts} = 0;
 			my $fh;
-			if (not sysopen $fh, $conf->{serport}, O_RDWR) {
+			if (not sysopen $fh, $theport, O_RDWR) {
 				# This tries to take care of the race condition where the
 				# port disappears between the -e test and the sysopen.
 				if ($!{ENOENT}) { $redo->(@_); return }
-				else { die "Failed to sysopen ".$conf->{serport}.": $!\n" }
+				else { die "Failed to sysopen $theport: $!\n" }
 			}
 			my $handle = IO::Termios->new($fh) or die "IO::Termios->new: $!";
 			$handle->set_mode($conf->{sermode});
 			IO::Stty::stty($handle, @DEFAULT_STTY_MODES);
-			_debug(1,$serialname,"Connected to ".$conf->{serport});
+			_debug(1,$serialname,"Connected to $theport");
 			$_[HEAP]{serial_wheel} = POE::Wheel::ReadWrite->new(
 					Handle => $handle,
 					InputEvent => 'serial_input',
