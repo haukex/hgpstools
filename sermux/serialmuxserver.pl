@@ -17,13 +17,19 @@ and each client may send things to the port, however having multiple
 clients send things to the port may end up in confusion, it is left up to
 the user to coordinate this.
 
-B<This is an alpha version.> Several things are intended to change in
-future versions:
+B<This is an alpha version.> Several things should change for this to
+become a beta/release version:
 
- TODO: Config via Perl files, like ngserlog.pl (dynamic serial port picking)
+ TODO: Config via Perl files, like ngserlog.pl
  TODO: Automated tests
  TODO Doc: Better doc (e.g. config)
  TODO Later: Use syslog
+
+=head1 Configuration
+
+A few notes: Since not all JSON parsers support comments, these can
+currently be implemented using hash entries with the keys beginning
+with "__", I<except> in the C<services> hash!
 
 =head1 Author, Copyright, and License
 

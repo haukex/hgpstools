@@ -49,6 +49,16 @@ For even more information, see the documentation of `Daemon::Control`
 (e.g. <http://search.cpan.org/search?query=Daemon::Control>),
 <https://wiki.debian.org/LSBInitScripts> and `man 8 insserv`.
 
+For openSuSE systems running systemd, the following are some alternative
+ways to install, remove, start and stop the daemon (currently only tested
+on openSUSE Leap 42.2).
+
+	sudo insserv --remove --verbose $DAEMON
+	sudo insserv --verbose $DAEMON
+	sudo /etc/init.d/$DAEMON status
+	sudo /etc/init.d/$DAEMON start
+	sudo /etc/init.d/$DAEMON stop
+
 
 Author, Copyright, and License
 ------------------------------
