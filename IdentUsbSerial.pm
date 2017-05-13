@@ -16,6 +16,8 @@ IdentUsbSerial - Perl extension for identifying USB-to-Serial TTYs
  use IdentUsbSerial 'ident_usbser';
  my @dev = ident_usbser(vend=>'1234', prod=>'abcd', ser=>'XYZ123');
 
+See also F<identusbser.pl> for a command-line frontend to this module.
+
 =head1 Description
 
 Looks through the F</sys> filesystem in an attempt to identify all of
