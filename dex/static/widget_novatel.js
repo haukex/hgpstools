@@ -23,7 +23,8 @@ $('body').append(
   '<div class="widget" id="sens_novatel">'
 + '<div><span id="novatel_value" style="word-wrap:break-word;">?</span></div>'
 + '<div class="small">Data Age: <span id="novatel_txtdata_age">?</span></div>'
-+ '<p>Command Log:</p>'
++ '<div id="novatel_sendcmd">Command: <input type="text" id="novatel_thecmd" value="LOG VERSIONA ONCE" /></div>'
++ '<div>Command Log:</div>'
 + '<pre id="novatel_cmds"></pre>'
 + '</div>' );
 
@@ -42,4 +43,14 @@ datahandlers.push(
 			$('#novatel_cmds').text(data.novatel_cmds.cmdlog.join("\n"));
 		}
 	} );
+
+var btn_novatel_sendcmd = $('<button/>',
+	{ text: "Send", class: "post_cmd",
+		click: function() {
+			do_post("novatel_sendcmd", { cmd:$('#novatel_thecmd').val() } );
+		}
+	} );
+$('#novatel_sendcmd')
+	.append(btn_novatel_sendcmd);
+add_btn_confirm(btn_novatel_sendcmd);
 

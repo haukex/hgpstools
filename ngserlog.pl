@@ -189,6 +189,11 @@ C<unabort> method will have been called before this handler is called,
 so that the handler may continue to talk to the port.
 The serial port object is passed as the first argument.
 
+=head3 C<$ON_SIGUSR2>
+
+Code will be executed in a C<$SIG{USR2}> handler, only while the port
+is open. The serial port object is passed as the first argument.
+
 =head3 C<$SYSLOG_TO_STDERR>
 
 Setting this boolean option causes the syslog messages to be printed
@@ -234,6 +239,7 @@ our $ON_START = sub {};
 our $ON_CONNECT = sub {};
 our $ON_TIMEOUT = sub {};
 our $ON_STOP = sub {};
+our $ON_SIGUSR2 = sub {};
 our $SYSLOG_TO_STDERR = 0;
 our $MAX_ERRORS = 100;
 # ###
@@ -316,6 +322,7 @@ MAINLOOP: while ($run) {
 	info "Device available, conntected to serial port\n";
 	local $SIG{INT}  = sub { info "Caught SIGINT, aborting...\n";  $port->abort; $run=0 };
 	local $SIG{TERM} = sub { info "Caught SIGTERM, aborting...\n"; $port->abort; $run=0 };
+	local $SIG{USR2} = sub { info "Caught SIGUSR2, running user code...\n"; $ON_SIGUSR2->($port) };
 	$do_status->("CONNECT");
 	if (!$on_start_run) {
 		$ON_START->($port);
