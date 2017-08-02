@@ -136,7 +136,7 @@ my @NOVATEL_ADDCMDS = (
 	# to the IMU, however, the IMU does not align correctly if the command is sent for
 	# initialisation only. Resending the command eliminates this weird behavior and
 	# forces the IMU to a sucessfully alignment.
-	q{SETINITATTITUDE  0 0 1 1 1},
+	q{SETINITATTITUDE 0 0 0 1 1 1},
 	# pitch/alhpa, roll/beta, azimuth/gamma in (transformed) IMU frame of reference
 	# example regarding the WINGPOD: 'SETINITATTITUDE 5 -5 290 5 5 5' means:
 	# IMU frame of reference: alpha=5, beta=-5, azimuth=290
@@ -157,7 +157,8 @@ our $ON_CONNECT = sub {
 	_novatel_docmd($usb1,"INTERFACEMODE USB2 NOVATEL NOVATEL OFF");
 	_novatel_docmd($usb1,"INTERFACEMODE USB3 NOVATEL NOVATEL OFF");
 	# Disable all logs (in case there were some running)
-	_novatel_docmd($usb1,"UNLOGALL");
+	# (note "true" is needed to also disable logs "held" with the "HOLD" parameter)
+	_novatel_docmd($usb1,"UNLOGALL TRUE");
 	# test the logging of ASCII data to USB2 and binary data to USB3
 	_novatel_docmd($usb1,"LOG USB2 VERSIONA ONCE");
 	_novatel_docmd($usb1,"LOG USB3 VERSIONB ONCE");
@@ -179,8 +180,8 @@ our $ON_CONNECT = sub {
 our $ON_STOP = sub {
 	my $usb1 = shift;
 	info('Stopping Novatel logging');
-	_novatel_docmd($usb1, "UNLOGALL USB2");
-	_novatel_docmd($usb1, "UNLOGALL USB3");
+	_novatel_docmd($usb1, "UNLOGALL USB2 TRUE");
+	_novatel_docmd($usb1, "UNLOGALL USB3 TRUE");
 };
 my %DOCMD_KNOWN_OPTS = map {$_=>1} qw/ empty_ok /;
 sub _novatel_docmd {
