@@ -143,6 +143,23 @@ my @NOVATEL_ADDCMDS = (
 	# WINGPOD frame of reference: beta=-5, alpha=5, azimuth=200
 );
 
+use DexProvider ();
+my $DEX = DexProvider->new(srcname=>'novatel_cmds', dexpath=>'_FROM_CONFIG');
+my $CMDLOG_LIMIT=20;
+sub _logcmd {
+	my $msg = shift;
+	state @cmdlog;
+	return unless defined $msg;
+	my @msgs = grep {/\S/} split /\x0D\x0A?/, $msg;
+	return unless @msgs;
+	for (@msgs)
+		{ s/\\/\\\\/g; s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg; }
+	push @cmdlog, @msgs;
+	@cmdlog>$CMDLOG_LIMIT and splice @cmdlog, 0, @cmdlog-$CMDLOG_LIMIT;
+	$DEX->provide({cmdlog=>\@cmdlog});
+	return;
+}
+
 our $ON_CONNECT = sub {
 	my $usb1 = shift;
 	# Restore Factory Default Settings
@@ -188,7 +205,9 @@ sub _novatel_docmd {
 	my ($port,$cmd,%opts) = @_;
 	exists $DOCMD_KNOWN_OPTS{$_} or warn "Bad option '$_'" for keys %opts;
 	$port->write($cmd."\x0D\x0A");
+	_logcmd($cmd);
 	my $in = do { local $/=']'; $port->readline };
+	_logcmd($in);
 	if (!defined $in && $opts{empty_ok})
 		{ info("Command Sent: \"$cmd\"\n") }
 	elsif (defined $in && $in=~/^\x0D\x0A<OK\x0D\x0A\[(?:USB|COM)\d\]$/)
@@ -200,6 +219,7 @@ sub _novatel_docmd {
 # note we don't expect to receive any data on this port since
 # it's only used for control commands
 our $HANDLE_LINE = sub {
+	_logcmd($_);
 	# escape all nonprintable and non-ASCII chars
 	s/\\/\\\\/g; s/([^\x09\x20-\x7E])/sprintf("\\x%02X", ord $1)/eg;
 	$_ .= "\n";

@@ -21,19 +21,25 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 $('body').append(
   '<div class="widget" id="sens_novatel">'
-+ '<div><span id="novatel_value" style="font-weight:bold;">?</span></div>'
-+ '<div class="small">Data Age: <span id="novatel_age">?</span></div>'
++ '<div><span id="novatel_value" style="word-wrap:break-word;">?</span></div>'
++ '<div class="small">Data Age: <span id="novatel_txtdata_age">?</span></div>'
++ '<p>Command Log:</p>'
++ '<pre id="novatel_cmds"></pre>'
 + '</div>' );
 
 components.push(
 	{ componentName: 'sens_novatel',  title: 'Novatel' } );
 
-data_ages.novatel_age = { age_s: null };
+data_ages.novatel_txtdata_age = { age_s: null };
 
 datahandlers.push(
 	function (data) {
-		if (!data.novatel) return;
-		$('#novatel_value').text(data.novatel.record);
-		data_ages.novatel_age.age_s = data.novatel._now;
+		if (data.novatel_txtdata) {
+			$('#novatel_value').text(data.novatel_txtdata.record);
+			data_ages.novatel_txtdata_age.age_s = data.novatel_txtdata._now;
+		}
+		if (data.novatel_cmds) {
+			$('#novatel_cmds').text(data.novatel_cmds.cmdlog.join("\n"));
+		}
 	} );
 

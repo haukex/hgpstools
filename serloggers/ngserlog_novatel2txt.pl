@@ -57,7 +57,7 @@ sub novatelcrc {
 }
 
 use DexProvider ();
-my $DEX = DexProvider->new(srcname=>'novatel', interval_s=>1, dexpath=>'_FROM_CONFIG');
+my $DEX = DexProvider->new(srcname=>'novatel_txtdata', interval_s=>1, dexpath=>'_FROM_CONFIG');
 our $HANDLE_LINE = sub {
 	my $err;
 	if (my ($msg,$got) = /\A[#%](.*)\*([0-9a-fA-F]{8})\z/) {
