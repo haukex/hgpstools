@@ -56,6 +56,7 @@ sub novatelcrc {
 		->add($data)->digest;
 }
 
+use Time::HiRes qw/ gettimeofday /;
 use DexProvider ();
 my $DEX = DexProvider->new(srcname=>'novatel_txtdata', interval_s=>1, dexpath=>'_FROM_CONFIG');
 our $HANDLE_LINE = sub {
@@ -75,7 +76,7 @@ our $HANDLE_LINE = sub {
 		# This is a real data value.
 		#TODO: Only provide certain parsed records.
 		$DEX->provide({record=>$_});
-		$_ .= "\n";
+		$_ = sprintf("%d.%06d\t%s\n",gettimeofday,$_);
 	}
 };
 our $HANDLE_STATUS = sub {
