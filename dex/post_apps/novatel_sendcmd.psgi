@@ -31,16 +31,27 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 =cut
 
 use DexPostRequest qw/wrap_dex_post_request/;
-#use Capture::Tiny qw/capture/;
-use Data::Dump qw/pp/; #DB
 
 wrap_dex_post_request sub {
 	my $in = shift;
 	my $cmd = $in->{cmd};
-	#TODO NEXT: novatel_sendcmd
-	return {
-		text => "unimplemented, you said: ".pp($cmd),
-		alert => "novatel_sendcmd.psgi unimplemented",
+	return { text=>"Error: No command!",
+		alert=>"Novatel: Can't send empty command!" }
+			unless $cmd=~/\S/;
+	# ### BEGIN INTERFACE HACK STUFF ### (see novatelcmd_hack.pl)
+	use Capture::Tiny qw/capture/;
+	my ($stdout, $stderr, $exit) = capture {
+		system(qw{ sudo -u pi -g dialout /home/pi/hgpstools/serloggers/novatelcmd_hack.pl },$cmd) };
+	if ($exit || $stderr=~/\S/ || $stdout=~/\S/) {
+		chomp( $stderr, $stdout );
+		return {
+			text => join("\n", "Sending command to Novatel failed, \$?=$exit",
+				( $stdout=~/\S/ ? ("STDOUT:",$stdout) : () ),
+				( $stderr=~/\S/ ? ("STDERR:",$stderr) : () ), ),
+			alert => "Sending command to Novatel failed, see log for details",
+		}
 	}
+	# ### END INTERFACE HACK STUFF ###
+	return { text => "Send command to Novatel ok" }
 }
 

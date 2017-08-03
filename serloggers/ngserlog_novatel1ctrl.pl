@@ -143,6 +143,35 @@ my @NOVATEL_ADDCMDS = (
 	# WINGPOD frame of reference: beta=-5, alpha=5, azimuth=200
 );
 
+# ### BEGIN INTERFACE HACK STUFF ### (see novatelcmd_hack.pl)
+my $INTERFACE_HACK_PATH = '/var/run/novatelctrl'; # created by Daemon::Control (below)
+use Fcntl qw/:flock/;
+our $ON_SIGUSR2 = sub {
+	my $port = shift;
+	state %seen_files;
+	opendir my $dh, $INTERFACE_HACK_PATH
+		or do { warn "$INTERFACE_HACK_PATH: $!"; return };
+	my @files = map { $_->[0] }
+		sort { $a->[1] <=> $b->[1] }
+		map { [$_, (stat)[9] ] } # sort by mtime
+		grep { -f && -s && /\.cmd\z/i && !$seen_files{$_} }
+		map {"$INTERFACE_HACK_PATH/$_"} readdir $dh;
+	close $dh;
+	@files or warn "No command files to run?\n";
+	FILE: for my $fn (@files) {
+		$seen_files{$fn}++;
+		open my $fh, '<', $fn or do { warn "$fn: $!"; next FILE };
+		flock($fh,LOCK_EX) or die "flock $fn: $!";
+		my $cmd = do { local $/; <$fh> };
+		close $fh;
+		info("Executing command \"$cmd\"");
+		$port->write($cmd."\x0D\x0A");
+		_logcmd($cmd);
+		unlink($fn) and delete $seen_files{$fn};
+	}
+};
+# ### END INTERFACE HACK STUFF ###
+
 use DexProvider ();
 my $DEX = DexProvider->new(srcname=>'novatel_cmds', dexpath=>'_FROM_CONFIG');
 my $CMDLOG_LIMIT=20;
@@ -249,6 +278,7 @@ if (!$NGSERLOG) {
 	stderr_file  => '/home/pi/logs/novatel1ctrl_err.txt',
 	pid_file     => '/home/pi/pidfiles/novatel1ctrl.pid',
 	#resource_dir => '/home/pi/ngserlog/', # currently not needed
+	resource_dir => $INTERFACE_HACK_PATH, # INTERFACE HACK (see novatelcmd_hack.pl)
 	fork         => 2, # default = 2 = double-fork
 	kill_timeout => 5, # ngserlog.pl needs *at least* one second to shut down
 	lsb_start   => '$local_fs $time ngserlog_novatel2txt ngserlog_novatel3bin',
