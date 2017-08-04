@@ -151,7 +151,7 @@ to broadcast its IP address as described in `udplisten.pl` and/or `my_ip.pl`.
 	a.	Here's an example `crontab` entry, then you can then listen via
 	`socat -u udp-recv:12340 -`
 	
-		* * * * *  /home/pi/hgpstools/my_ip.pl -sp `hostname` | socat - UDP-DATAGRAM:255.255.255.255:12340,broadcast
+		* * * * *  /home/pi/hgpstools/my_ip.pl -sp `hostname` | socat -s - UDP-DATAGRAM:255.255.255.255:12340,broadcast 2>/dev/null
 	
 	b.	You may then want to **adjust your `rsyslog`** configuration
 	to prevent your log from filling up with the messages from `cron`
