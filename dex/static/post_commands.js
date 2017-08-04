@@ -42,6 +42,17 @@ $('#post_commands')
 	.append(btn_poweroff);
 add_btn_confirm(btn_poweroff);
 
+var btn_setdate = $('<button/>',
+	{ text: "Set Browser Time on Server", class: "post_cmd",
+		click: function() {
+			do_post("sys_control", { command:"date", args:["--set="+new Date().toISOString()] } );
+		}
+	} );
+$('#post_commands')
+	.append('<div/>')
+	.append(btn_setdate);
+add_btn_confirm(btn_setdate);
+
 var services =
 	["ngserlog_cpt6100_port0","ngserlog_cpt6100_port1","ngserlog_cpt6100_port2","ngserlog_cpt6100_port3",
 	"ngserlog_hmt310","ngserlog_novatel1ctrl","ngserlog_novatel2txt","ngserlog_novatel3bin"];

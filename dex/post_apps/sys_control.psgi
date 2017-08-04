@@ -36,7 +36,7 @@ use Capture::Tiny qw/capture/;
 wrap_dex_post_request sub {
 	my $in = shift;
 	die "invalid command\n" unless $in->{command}
-		&& $in->{command}=~/\A(?:reboot|poweroff|service)\z/;
+		&& $in->{command}=~/\A(?:reboot|poweroff|service|date)\z/;
 	my @cmd = ('sudo',$in->{command});
 	if ($in->{command} eq 'service') {
 		die "invalid service command\n"
@@ -47,6 +47,12 @@ wrap_dex_post_request sub {
 		die "invalid service command\n"
 			unless $srv_cmd && $srv_cmd=~/\A(?:start|stop|status)\z/;
 		push @cmd, $srv_name, $srv_cmd;
+	}
+	elsif ($in->{command} eq 'date') {
+		die "invalid date command\n"
+			unless $in->{args} && @{$in->{args}}==1
+			&& $in->{args}[0]=~/^\s*--set=/;
+		push @cmd, $in->{args}[0];
 	}
 	my ($stdout, $stderr) = capture {
 		system(@cmd);
