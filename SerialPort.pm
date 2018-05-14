@@ -87,6 +87,12 @@ instead of installing them to the system Perl.
 * Say B<no> to this question if you are planning to or already have set up the
 C<local::lib> environment variables, for example via C</etc/default/hgpstools>.
 
+B<Update:> C<cpanm> is easier:
+
+ sudo apt-get install liblocal-lib-perl libio-pty-perl libpath-class-perl libio-stty-perl cpanminus libtest-longstring-perl
+ # log out and back in to make sure local::lib config is in effect*
+ cpanm IO::Termios
+
 =head1 Methods
 
 =cut

@@ -15,6 +15,7 @@ a Raspberry Pi and Raspbian / Debian.
 Tested March 2016 on a Raspberry Pi 1 Model B with Raspbian 2016-02-26,
 May 2016 on a Raspberry Pi 3 with Raspbian jessie 2016-05-10,
 Nov 2016 on a RPi 3 with Raspbian jessie 2016-09-23,
+May 2018 on a RPi 3 with Raspbian stretch 2018-04-18 (*"lite"*),
 and should work on other models too.
 
 1.	Download and install the latest Raspbian image onto an SD card
@@ -60,18 +61,24 @@ according to the installation instructions:
 	`sudo apt-get install unattended-upgrades` and
 	in `/etc/apt/apt.conf.d/50unattended-upgrades`,
 	uncomment one of the lines containing `o=Raspbian` (I usually choose the `n=jessie` line).
+	If the line doesn't exist, change one of the `o=Debian` lines accordingly,
+	and if you're using `stretch` by now, replace `jessie` with that.
 	You may also change the `Mail` option if you wish (I set it to `"pi"`).
 	Then add the following lines to the file
-	`/etc/apt/apt.conf.d/10periodic`:
+	`/etc/apt/apt.conf.d/10periodic`,
+	or on newer versions, add these lines to `20auto-upgrades`:
 	
 		APT::Periodic::Update-Package-Lists "1";
+		APT::Periodic::Unattended-Upgrade "1";
 		APT::Periodic::Download-Upgradeable-Packages "1";
 		APT::Periodic::AutocleanInterval "7";
-		APT::Periodic::Unattended-Upgrade "1";
 	
 	f.	Other configuration files worth taking a look at to see if you need
 	to adjust them for your setup: `/etc/ntp.conf`, `/etc/ssh/sshd_config`
 	(in this one I usually change `PermitRootLogin` to `no`).
+	
+	g.	On a `stretch` *"lite"* install, you may need to install `ntp`,
+	or at least `ntpdate`, and then run it via e.g. `sudo ntpdate de.pool.ntp.org`.
 	
 3.	Install additional packages via `sudo apt-get install ...` or `aptitude`:
 	
@@ -110,7 +117,7 @@ according to the installation instructions:
 	`lsof`
 	
 	g.	Packages that are already installed in the latest version of Raspbian
-	I used, but may be missing on older versions: `git`
+	I used, but may be missing on older or *"lite"* versions: `git`
 	
 4.	In a suitable directory (like `/home/pi`) do:
 `git clone --recursive https://bitbucket.org/haukex/hgpstools.git`
@@ -190,7 +197,7 @@ module and applies to Raspbian Jessie >= 2016-03-18.
 	
 8.	The *most current* information to install the NMEA logging daemon is in the files
 referenced below! Here is a short summary of the steps needed at the time of writing:
-(TODO: Update these instructions for the change from `serlog.pl` to `ngserlog.pl`.
+(**TODO:** Update these instructions for the change from `serlog.pl` to `ngserlog.pl`.
 For now please see `ngserlog.pl` and `ngserlog_nmea.pl` for instructions.)
 	
 		# the following is from serlog.pl

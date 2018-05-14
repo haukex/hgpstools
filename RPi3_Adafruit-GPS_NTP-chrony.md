@@ -7,7 +7,8 @@ at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
 Berlin, Germany, <http://www.igb-berlin.de/>
 (legal information below)*
 
-Last tested May 2016 on Raspbian jessie 2016-05-10.
+Last tested May 2016 on Raspbian jessie 2016-05-10
+and May 2018 on Raspbian stretch 2018-04-18 (*"lite"*).
 
 1.	**Install Raspbian Jessie** >= 2016-03-18 on the Raspberry Pi 3
 as per the instructions in `INSTALL-RPi.md` from:
@@ -22,12 +23,13 @@ as per the instructions in `INSTALL-RPi.md` from:
 	b.	We need the latest version of `gpsd` and related packages: in 3.11
 	the PPS we use does not yet seem to work correctly, 3.15 works better,
 	there is just a small bug that we have a workaround for below.
-	At the time of writing, those are only available in Raspbian's
-	`testing` repository. At some point in the future those packages
-	should migrate into the stable repositories, and this step as well
-	as the other references to `testing` in the rest of the instructions
-	will no longer be needed.
-	At the time of writing (May 2016), the default `gpsd -V` was at
+	
+	If your version of Raspbian includes a version of `gpsd` >= 3.15,
+	then you can ignore the following, as well as any references to
+	`testing` in the rest of these instructions. Otherwise:
+	
+	As of May 2016, the newer versions of `gpsd` were only available in
+	Raspbian's `testing` repository: The default `gpsd -V` was at
 	`3.11 (revision 3.11-3)`, and after using `testing` it was
 	`3.16 (revision 3.16-1)`.
 	
@@ -80,7 +82,7 @@ as per the instructions in `INSTALL-RPi.md` from:
 	b.	For testing, `sudo service gpsd stop`, then
 	`sudo gpsd -ND3 -n -F /var/run/gpsd.sock /dev/pps0 /dev/ttyAMA0`,
 	then in another terminal do `gpsmon`.
-	When the module has a fix, there should be lines saying "PPS
+	When the module has a fix, there should be lines saying "PPS"
 	showing up in the messages.
 	
 	c.	Apparently, at the time of writing, the messages
