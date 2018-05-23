@@ -128,8 +128,9 @@ as per the instructions in `INSTALL-RPi.md` from:
 		logchange 0.5
 		hwclockfile /etc/adjtime
 		rtcsync
-		refclock SHM 0 refid GPS precision 1e-1 delay 0.2 noselect
-		refclock PPS /dev/pps0 lock GPS
+		makestep 2 3
+		refclock SHM 0 refid GPS precision 1e-1 delay 0.2
+		refclock PPS /dev/pps0 lock GPS prefer
 	
 	After editing the config, `sudo service chrony restart`
 	

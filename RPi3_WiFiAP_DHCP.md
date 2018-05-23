@@ -1,107 +1,109 @@
 
-Raspberry Pi 3 WiFi Access Point and/or DHCP Server
-===================================================
+Routing Between Ethernet and WiFi on a Raspberry Pi 3 with Raspbian stretch
+===========================================================================
 
 *by Hauke Daempfling <haukex@zero-g.net>
 at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
 Berlin, Germany, <http://www.igb-berlin.de/>
 (legal information below)*
 
-Last tested May 2016 on Raspbian jessie 2016-05-10.
+Last tested May 2018 on Raspbian stretch 2018-04-18 (*"lite"*).
 
-General
+This guide is intended to document how to set up an RPi 3 based on Raspbian **stretch** in various modes:
+
+*	a WiFi Access Point
+*	a NAT gateway between `eth0` and `wlan0` (in either direction)
+*	a network bridge between `eth0` and `wlan0`
+*	a DHCP server (optional)
+
+It is assumed that the RPi was set up as documented in `INSTALL-RPi.md`,
+for example that the `ufw` firewall is being used.
+
+Together with the instructions in `RPi3_Adafruit-GPS_NTP-chrony.md`,
+the RPi can also serve as an NTP server (shown in configuration examples below;
+if you don't have an NTP server, comment out the lines with `ntp-server`).
+
+**Note** that Raspbian stretch has introduced new network interface names
+instead of the old `eth0` names. Note the new name of your network interface
+and insert it below **everywhere** you see `eth0`. See also
+<https://www.debian.org/releases/stable/armhf/release-notes/ch-whats-new.en.html#new-interface-names>.
+(TODO: `enxb827eb38f397`)
+
+Further documentation:
+
+*	`dhcpcd`: `man 5 dhcpcd.conf`
+	
+*	`dnsmasq`: `man 8 dnsmasq` as well as `/etc/dnsmasq.conf`,
+	which below we copy to `/etc/dnsmasq.conf.orig`
+	
+*	`hostapd`: `zless /usr/share/doc/hostapd/examples/hostapd.conf.gz`
+	
+*	<https://help.ubuntu.com/lts/serverguide/firewall.html#ip-masquerading>
+
+WARNING
 -------
 
-This guide is intended to show you how to make your Raspberry Pi a
-standalone access point and/or a DHCP server.
-Note this guide currently does not cover how to turn the RPi into a router
-or share an Internet connection.
-
-### Status of this Guide ###
-
-The steps below are all tested and they work, with some still-unexplained
-things marked with "??", and several places that could use some expansion.
-
-### Making Changes ###
-
-At the moment, the only really reliable way I have found to
-switch modes is by rebooting the RPi (??).
-Some of the `service ... start/stop/restart` and `systemctl` commands shown
-below don't seem to have the desired effect (e.g. switching `wlan0` from
-DHCP to static IP) but I reccommend you use them anyway.
+Always have a monitor and keyboard handy in case your network
+configuration changes don't work!
 
 
-DHCP Server
------------
+General Setup (needed for all of the following)
+-----------------------------------------------
 
-### Initial Setup ###
+	sudo apt-get install bridge-utils hostapd dnsmasq
+	sudo systemctl disable dnsmasq
+	sudo systemctl disable hostapd
+	sudo cp /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 
-	sudo apt-get install dnsmasq
+In `/etc/sysctl.conf`, set `net.ipv4.ip_forward=1`.
 
-The full configuration is documented in `/etc/dnsmasq.conf` and
-`man 8 dnsmasq`. Back this file up via
-`sudo cp /etc/dnsmasq.conf /etc/dnsmasq.conf.orig`,
-then edit `/etc/dnsmasq.conf` as follows (replace the file if you like).
-Repeat the `interface` option for any other interfaces you want to listen
-on.
+In `/etc/default/ufw`, set `DEFAULT_FORWARD_POLICY="ACCEPT"`.
 
-	interface=wlan0
-	domain-needed
-	bogus-priv
-	dhcp-range=192.168.77.100,192.168.77.199
+In `/etc/ufw/sysctl.conf`, set `net/ipv4/ip_forward=1`.
 
-Note that you can specify an NTP server via e.g.
-`dhcp-option=option:ntp-server,192.168.77.4`
-(use `0.0.0.0` for "this machine").
-
-If you're using the firewall `ufw`:
-
+	sudo ufw status verbose
+	# IIF the DNS and DHCP rules don't exist yet:
 	sudo ufw allow DNS
 	sudo ufw allow from any port 68 to any port 67 proto udp
 
-*Note:* The `ENABLED` parameter in `/etc/default/dnsmasq` does not appear
-to have any effect (??).
+If you aren't getting DNS servers assigned via DHCP (or have them configured in your
+`resolv.conf`), you can configure a specific upstream DNS server in `dnsmasq` by
+adding e.g. `server=8.8.8.8` to `dnsmasq.conf`. See the `dnsmasq` documentation.
 
-### Switching On ###
 
-Assign the interface (`eth0` and/or `wlan0`) a static IP by editing
-`/etc/dhcpcd.conf` and adding the following:
+Optional DHCP Server
+--------------------
+
+Most of the following sections show an example `dnsmasq.conf` file
+that enables the DHCP server component of `dnsmasq`. If you don't
+need or want a DHCP server, you can simply comment out all `dhcp`
+related configuration lines in that configuration file to disable it
+(see the `dhcp-range` option in `man dnsmasq`).
+
+To assign fixed IPs to certain MAC addresses, add lines like this to `dnsmasq.conf`:
+
+	dhcp-host=11:22:33:44:55:66,192.168.88.20,hostname,infinite
+
+
+Internet via `eth0`, providing a WiFi Access Point with NAT
+-----------------------------------------------------------
+
+In `/etc/ufw/before.rules` at the top, right after the header comments:
+
+	*nat
+	:POSTROUTING ACCEPT [0:0]
+	-A POSTROUTING -s 192.168.88.0/24 -o eth0 -j MASQUERADE
+	COMMIT
+
+In `/etc/dhcpcd.conf`, configure `eth0` as needed for internet access, and:
 
 	interface wlan0
-	static ip_address=192.168.77.10/24
+	static ip_address=192.168.88.1/24
+	static domain_name_servers=192.168.88.1
+	nohook wpa_supplicant
 
-Then, to start things up:
-
-	sudo systemctl restart dhcpcd   # currently no effect (??)
-	sudo systemctl enable dnsmasq
-	sudo systemctl start dnsmasq
-
-### Switching Off ###
-
-Undo the changes made to `/etc/dhcpcd.conf` above (e.g. comment out the
-added lines).
-
-	sudo systemctl stop dnsmasq
-	sudo systemctl disable dnsmasq
-
-### Alternate On/Off Method ###
-
-Commenting out all `dhcp` related lines in `/etc/dnsmasq.conf` disables
-the DHCP component of `dnsmasq` and it will not listen on that port
-(don't forget `sudo systemctl restart dnsmasq`). This method is probably
-easier and more useful than disabling the service altogether.
-
-
-Access Point
-------------
-
-### Initial Setup ###
-
-	sudo apt-get install hostapd
-
-Create `/etc/hostapd/hostapd.conf` with the following content.
-For all details on the configuration parameters see:
-`zless /usr/share/doc/hostapd/examples/hostapd.conf.gz`
+File `/etc/hostapd/hostapd.conf`
+(can test via `sudo hostapd /etc/hostapd/hostapd.conf`):
 
 	interface=wlan0
 	driver=nl80211
@@ -119,48 +121,108 @@ For all details on the configuration parameters see:
 	wpa_key_mgmt=WPA-PSK
 	rsn_pairwise=CCMP
 
-*Note:* If you have trouble, you can test the config via
-`sudo hostapd /etc/hostapd/hostapd.conf`.
+File `/etc/dnsmasq.conf`:
 
-### Switching On ###
+	interface=wlan0
+	domain-needed
+	bogus-priv
+	dhcp-range=192.168.88.100,192.168.88.150
+	dhcp-option=option:ntp-server,0.0.0.0
 
-In `/etc/network/interfaces`, comment out the `wpa-conf` line under the
-`iface wlan0 inet manual` line of the interface you want to use.
+Make sure `/etc/network/interfaces` is empty!
 
-In `/etc/default/hostapd` change the `DAEMON_CONF=""` line to
-point to the configuration file above.
+In `/etc/default/hostapd`, set `DAEMON_CONF="/etc/hostapd/hostapd.conf"`.
 
-I have not yet found a reliable way to start hostapd
-other than rebooting (??).
+	sudo systemctl enable dhcpcd
+	sudo systemctl enable hostapd
+	sudo systemctl enable dnsmasq
+	sudo reboot
 
-### Switching Off ###
 
-Undo the changes made to `/etc/network/interfaces` above
-(i.e. remove the comment marker that was added).
+Internet via `wlan0`, providing NAT on `eth0`
+---------------------------------------------
 
-Undo the changes made to `/etc/default/hostapd` above
-(i.e. comment out the `DAEMON_CONF=""` line).
+In `/etc/ufw/before.rules` at the top, right after the header comments:
 
-Note `sudo service` doesn't seem to have any effect (??); one way
-to kill the daemon is `sudo pkill --pidfile /run/hostapd.pid`,
-but as noted above the most reliable way is to reboot.
+	*nat
+	:POSTROUTING ACCEPT [0:0]
+	-A POSTROUTING -s 192.168.88.0/24 -o wlan0 -j MASQUERADE
+	COMMIT
 
-### Additional Notes ###
+In `/etc/dhcpcd.conf`, configure `wlan0` as needed for internet access, and:
 
-**Configuring a second RPi to connect to your wireless network**
+	interface eth0
+	static ip_address=192.168.88.1/24
+	static domain_name_servers=192.168.88.1
 
-Edit `/etc/wpa_supplicant/wpa_supplicant.conf` and add:
+In `/etc/wpa_supplicant/wpa_supplicant.conf`:
 
 	network={
 		ssid="SSID"
 		psk="Passphrase"
 	}
 
+File `/etc/dnsmasq.conf`:
+
+	interface=eth0
+	domain-needed
+	bogus-priv
+	dhcp-range=192.168.88.100,192.168.88.150
+	dhcp-option=option:ntp-server,0.0.0.0
+
+Make sure `/etc/network/interfaces` is empty!
+
+In `/etc/default/hostapd`, comment out `DAEMON_CONF`.
+
+	sudo systemctl disable hostapd
+	sudo systemctl enable dhcpcd
+	sudo systemctl enable dnsmasq
+	sudo reboot
+
+
+Bridged `eth0` and `wlan0`
+--------------------------
+
+In `/etc/ufw/before.rules`, remove the `*nat` table entries that may have been added above.
+
+In `/etc/dhcpcd.conf`:
+
+	denyinterfaces wlan0 eth0
+	
+	interface br0
+	# OPTIONAL, if you don't have a DHCP server on the network
+	#static ip_address=192.168.88.1/24
+	#static domain_name_servers=192.168.88.1
+
+Use the same `/etc/hostapd/hostapd.conf` file as above,
+**except** add the line `bridge=br0`.
+
+In `/etc/network/interfaces`:
+
+	auto br0
+	iface br0 inet manual
+		bridge_ports eth0
+
+File `/etc/dnsmasq.conf`:
+
+	domain-needed
+	bogus-priv
+	# OPTIONAL - ONLY add in if you DON'T already have a DHCP server!
+	#dhcp-range=192.168.88.100,192.168.88.150
+	#dhcp-option=option:ntp-server,0.0.0.0
+
+In `/etc/default/hostapd`, set `DAEMON_CONF="/etc/hostapd/hostapd.conf"`
+
+	sudo systemctl enable dhcpcd
+	sudo systemctl enable hostapd
+	sudo systemctl enable dnsmasq
+	sudo reboot
+
 
 Author, Copyright, and License
 ------------------------------
 
-Copyright (c) 2016 Hauke Daempfling <haukex@zero-g.net>
+Copyright (c) 2018 Hauke Daempfling <haukex@zero-g.net>
 at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
 Berlin, Germany, <http://www.igb-berlin.de/>
 
