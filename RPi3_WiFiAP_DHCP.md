@@ -27,7 +27,6 @@ if you don't have an NTP server, comment out the lines with `ntp-server`).
 instead of the old `eth0` names. Note the new name of your network interface
 and insert it below **everywhere** you see `eth0`. See also
 <https://www.debian.org/releases/stable/armhf/release-notes/ch-whats-new.en.html#new-interface-names>.
-(TODO: `enxb827eb38f397`)
 
 Further documentation:
 
