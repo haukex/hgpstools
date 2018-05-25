@@ -13,9 +13,9 @@ rm -fv normalize* jquery* goldenlayout*
 # - https://github.com/jquery/jquery
 # - https://github.com/deepstreamIO/golden-layout
 # Because it makes picking specific fixed versions easier.
-NORMALIZE_VERSION="5.0.0"
-JQUERY_VERSION="3.1.1"
-GOLDLAY_VERSION="v1.5.7"
+NORMALIZE_VERSION="8.0.0"
+JQUERY_VERSION="3.3.1"
+GOLDLAY_VERSION="v1.5.9"
 wget -nv -i- <<ENDURLLIST
 https://raw.githubusercontent.com/necolas/normalize.css/$NORMALIZE_VERSION/LICENSE.md
 https://raw.githubusercontent.com/necolas/normalize.css/$NORMALIZE_VERSION/normalize.css
