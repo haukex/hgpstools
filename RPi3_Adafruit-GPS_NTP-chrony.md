@@ -193,6 +193,13 @@ as per the instructions in `INSTALL-RPi.md` from:
 	e.	You can also use the command `ntpstat` to get a brief report.
 	(`sudo apt-get install ntpstat`)
 	
+	f.	For Windows clients, you can set the NTP server in the Date/Time
+	options as usual. To increase the frequency at which Windows synchronizes
+	its time, use `regedit` and edit the key `SpecialPollInterval` at
+	`HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient`
+	and change it to, for example, decimal 3600 for 1 hour. You may
+	also force a manual resync at the command line with `w32tm /resync`.
+	
 7.	**Web Interface**
 	
 	**TODO:** This web interface has been deprecated and replaced by the
