@@ -50,12 +50,18 @@ use Plack::Builder qw/builder enable mount/;
 use Plack::Request ();
 use Plack::App::Directory ();
 use Plack::Util ();
+use File::Replace qw/replace2/;
 # the following is not needed, but catch missing module at compile time
 use Plack::Middleware::Auth::Digest ();
 
 $STATICFILES_PATH //= "$FindBin::Bin/static";
 $POST_APPS_PATH //= "$FindBin::Bin/post_apps";
 my $HOSTNAME = hostname;
+
+# Not really meant for security, just to prevent accidental submits.
+my $PUT_AUTH_USER = 'dexput';
+my $PUT_AUTH_REALM = 'DEX_PUT';
+my $PUT_AUTH_HASH = '418c9f04ff3373fe2a037d88a46d4659'; # DexSending
 
 my %post_apps =
 	map { (my $x=$_->basename)=~s/\.psgi$//; $x => $_ }
@@ -84,6 +90,24 @@ my $app_get = sub {
 	my $res = $req->new_response(200);
 	$res->content_type('application/json');
 	$res->body(encode_json(\%the_data));
+	return $res->finalize;
+};
+my $app_put = sub {
+	my $req = Plack::Request->new(shift);
+	die "auth" unless length $req->user; # shouldn't happen, just double-check
+	my $ok = eval {
+		my $content = decode_json($req->content);
+		my ($file) = $req->path=~m{\A/([a-zA-Z][a-zA-Z0-9_]+\.json)\z}
+			or die "bad path";
+		$content->{_remote} = $req->remote_host || $req->address;
+		$content->{_rx_time} = sprintf("%d.%06d",gettimeofday);
+		my $ofh = replace2( dir($DEX_PATH)->file($file) );
+		print $ofh encode_json($content);
+		close $ofh;
+	1 }; my $e = $@||'unknown error';
+	my $res = $req->new_response($ok ? 200 : 500);
+	$res->content_type('text/plain');
+	$res->body($ok ? 'OK' : $e);
 	return $res->finalize;
 };
 my $app_post = sub {
@@ -123,6 +147,15 @@ builder {
 			# commented out JSONP because we're serving the main page ourselves
 			#enable 'JSONP';
 			$app_get };
+		mount '/put' => builder {
+			enable 'Auth::Digest',
+				realm => $PUT_AUTH_REALM, secret => 'seeecrettt',
+				password_hashed => 1,
+				authenticator => sub {
+					my ($username, $env) = @_;
+					return $username eq $PUT_AUTH_USER ? $PUT_AUTH_HASH : undef;
+				};
+			$app_put };
 		mount '/post' => builder {
 			enable 'Auth::Digest',
 				realm => $POST_AUTH_REALM, secret => 'seeecrettt',
