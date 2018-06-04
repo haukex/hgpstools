@@ -1,0 +1,20 @@
+
+# ### Configuration for dex_relay_daemon.pl (system-wide) ###
+# Copy me to /etc/default/dex_relay
+# and adjust the variables below to match your system
+
+# Since dex_relay_daemon.pl only loads this file, and not the following,
+# we'll call that file here to get those variable initializations.
+[ -r /etc/default/hgpstools ] && . /etc/default/hgpstools
+
+# ### User-Settable Variables ###
+
+DEX_RELAY_TARGET="http://localhost:5000/put"
+
+# leave blank for default:
+DEX_RELAY_SOURCE=""
+
+# ###
+
+export DEX_RELAY_TARGET
+export DEX_RELAY_SOURCE

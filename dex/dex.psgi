@@ -59,6 +59,7 @@ $POST_APPS_PATH //= "$FindBin::Bin/post_apps";
 my $HOSTNAME = hostname;
 
 # Not really meant for security, just to prevent accidental submits.
+# See "Changing the Password" in DexConfig.pm.
 my $PUT_AUTH_USER = 'dexput';
 my $PUT_AUTH_REALM = 'DEX_PUT';
 my $PUT_AUTH_HASH = '418c9f04ff3373fe2a037d88a46d4659'; # DexSending
