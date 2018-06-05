@@ -37,7 +37,7 @@ wrap_dex_post_request sub {
 	my $in = shift;
 	die "invalid command\n" unless $in->{command}
 		&& $in->{command}=~/\A(?:reboot|poweroff|service|date)\z/;
-	my @cmd = ('sudo',$in->{command});
+	my @cmd = ('sudo','-n',$in->{command});
 	if ($in->{command} eq 'service') {
 		die "invalid service command\n"
 			unless $in->{args} && @{$in->{args}}==2;

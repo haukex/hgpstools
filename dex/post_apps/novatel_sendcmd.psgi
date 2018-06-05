@@ -41,7 +41,7 @@ wrap_dex_post_request sub {
 	# ### BEGIN INTERFACE HACK STUFF ### (see novatelcmd_hack.pl)
 	use Capture::Tiny qw/capture/;
 	my ($stdout, $stderr, $exit) = capture {
-		system(qw{ sudo -u pi -g dialout /home/pi/hgpstools/serloggers/novatelcmd_hack.pl },$cmd) };
+		system(qw{ sudo -n -u pi -g dialout /home/pi/hgpstools/serloggers/novatelcmd_hack.pl },$cmd) };
 	if ($exit || $stderr=~/\S/ || $stdout=~/\S/) {
 		chomp( $stderr, $stdout );
 		return {
