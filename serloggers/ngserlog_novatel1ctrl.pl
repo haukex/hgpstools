@@ -118,17 +118,20 @@ my @NOVATEL_INITCMDS = (
 	q{SETIMUORIENTATION 6},
 	# option 6 turns the IMU axis down (around alpha by 180 deg), THEN around the down
 	# pointing gamma axis by 90 degrees. Result (old -> new): Z -> -Z, Y -> X, X -> Y
-	q{VEHICLEBODYROTATION 0 0 -90 0 0 0}, # beacause X and Y axis between body and IMU
+	q{VEHICLEBODYROTATION 0 0 -90 0.5 0.5 0.5}, # beacause X and Y axis between body and IMU
 	# frame of reference are interchanged, the IMU has to be turnbed by 90 degrees to the left
 	q{APPLYVEHICLEBODYROTATION ENABLE},
-	q{SETIMUTOANTOFFSET -0.1 -4 -1 1 1 1}, # antenna offset regarding the
+	q{SETIMUTOANTOFFSET 4.35 0 -0.54 0.1 0.1 0.1}, # antenna offset regarding the
 	# TRANSFORMED IMU frame of reference AND VEHICLEBODYROTATION applied.
 	#q{SETINSOFFSET 0 0 0},
-	q{ALIGNMENTMODE UNAIDED},
-	q{SETINITATTITUDE 0 0 0 1 1 1}, # dummy command for manual alignment
+	q{SETIMUTOANTOFFSET2 -11.5 0.1 -0.54 0.1 0.1 0.1},
+	q{SETINSOFFSET 0 0 0},
+	q{ALIGNMENTMODE AUTOMATIC},
+	#q{SETINITATTITUDE 0 0 0 1 1 1}, # dummy command for manual alignment
 	# ### Allgemeines ###
 	# Enable asynchronous INS logs (IMURATECORRIMUS and IMURATEPVAS)
 	q{ASYNCHINSLOGGING ENABLE},
+	q{SAVECONFIG},
 );
 my @NOVATEL_ADDCMDS = (
 	# ### Additional Comands after IMU initialisation ###
@@ -136,7 +139,7 @@ my @NOVATEL_ADDCMDS = (
 	# to the IMU, however, the IMU does not align correctly if the command is sent for
 	# initialisation only. Resending the command eliminates this weird behavior and
 	# forces the IMU to a sucessfully alignment.
-	q{SETINITATTITUDE 0 0 0 1 1 1},
+	q{SETINITAZIMUTH 0 1},
 	# pitch/alhpa, roll/beta, azimuth/gamma in (transformed) IMU frame of reference
 	# example regarding the WINGPOD: 'SETINITATTITUDE 5 -5 290 5 5 5' means:
 	# IMU frame of reference: alpha=5, beta=-5, azimuth=290
@@ -210,7 +213,7 @@ our $ON_CONNECT = sub {
 	_novatel_docmd($usb1,"LOG USB3 VERSIONB ONCE");
 	# Novatel initialization commands
 	_novatel_docmd($usb1,$_) for @NOVATEL_INITCMDS;
-	sleep(1);
+	sleep(5);
 	_novatel_docmd($usb1,$_) for @NOVATEL_ADDCMDS;
 	# Configure the logs
 	for my $log (@LOGS) {
