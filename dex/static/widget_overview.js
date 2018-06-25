@@ -21,6 +21,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 $('body').append(
   '<div class="widget overview" id="overview">'
++ '<div class="ovw_msg" style="background:darkgrey"><span id="ovw_temperature">?</span>&nbsp;°C&nbsp;<span style="margin:0 0.5em">&nbsp;</span>&nbsp;<span id="ovw_relhumiditiy">?</span>&nbsp;%RH</div>'
 //+ '<div class="ovw_msg ovw_error">Error: Test</div>'
 //+ '<div class="ovw_msg ovw_warning">Warn: Test</div>'
 //+ '<div class="ovw_msg ovw_ok">All Systems Go</div>'
@@ -38,6 +39,19 @@ datahandlers.push(
 	function (data) {
 		//$('#overview_debug').text( "data_ages="+JSON.stringify(data_ages) ); //Debug
 		//TODO
+		if (data.hmt310) {
+			$.each(data.hmt310.data, function(i, val) {
+				var name  = val[0];
+				var value = val[1];
+				var unit  = val[2];
+				if (name=='T' && unit=="'C") {
+					$('#ovw_temperature').text(value);
+				}
+				else if (name=='RH' && unit=='%RH') {
+					$('#ovw_relhumiditiy').text(value);
+				}
+			});
+		}
 	}
 );
 
