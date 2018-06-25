@@ -45,7 +45,7 @@ command logging mechanism.
 
 =head2 SETUP
 
-Using C<sudo visudo>, add the line:
+Using C<sudo visudo> (C</etc/sudoers>), add the line:
 
  piweb ALL = (pi:dialout) NOPASSWD: /home/pi/hgpstools/serloggers/novatelcmd_hack.pl
 
