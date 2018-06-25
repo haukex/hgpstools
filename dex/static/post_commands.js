@@ -55,7 +55,7 @@ add_btn_confirm(btn_setdate);
 
 var services =
 	["ngserlog_cpt6100_port0","ngserlog_cpt6100_port1","ngserlog_cpt6100_port2","ngserlog_cpt6100_port3",
-	"ngserlog_hmt310","ngserlog_novatel1ctrl","ngserlog_novatel2txt","ngserlog_novatel3bin"];
+	"ngserlog_hmt310","ngserlog_novatel1ctrl","ngserlog_novatel2txt","ngserlog_novatel3bin","usb1608fsplus_log"];
 var srv_cmds = ["none", "start", "stop", "status"];
 var srv_tbl = $('<table/>');
 srv_tbl.append( $('<tr/>')

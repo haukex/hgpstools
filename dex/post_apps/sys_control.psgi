@@ -43,7 +43,7 @@ wrap_dex_post_request sub {
 			unless $in->{args} && @{$in->{args}}==2;
 		my ($srv_name,$srv_cmd) = @{$in->{args}};
 		die "invalid service command\n"
-			unless $srv_name && $srv_name=~/\A(?:ngserlog_[a-zA-Z0-9_]+)\z/;
+			unless $srv_name && $srv_name=~/\A(?:ngserlog_[a-zA-Z0-9_]+|usb1608fsplus_log)\z/;
 		die "invalid service command\n"
 			unless $srv_cmd && $srv_cmd=~/\A(?:start|stop|status)\z/;
 		push @cmd, $srv_name, $srv_cmd;
