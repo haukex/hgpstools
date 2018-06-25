@@ -193,7 +193,14 @@ as per the instructions in `INSTALL-RPi.md` from:
 	e.	You can also use the command `ntpstat` to get a brief report.
 	(`sudo apt-get install ntpstat`)
 	
-	f.	For Windows clients, you can set the NTP server in the Date/Time
+	f.	For a very basic setup on a Linux client with forced NTP updates,
+	you can set up a `crontab` for `root` via `sudo -i crontab -e` and then
+	add lines such as:
+	
+		@reboot sleep 5m && /usr/sbin/ntpdate ADDRESS >/dev/null
+		@hourly /usr/sbin/ntpdate ADDRESS >/dev/null
+	
+	g.	For Windows clients, you can set the NTP server in the Date/Time
 	options as usual. To increase the frequency at which Windows synchronizes
 	its time, use `regedit` and edit the key `SpecialPollInterval` at
 	`HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient`
