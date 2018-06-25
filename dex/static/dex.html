@@ -58,6 +58,7 @@ button.btn_confirm {
 .lm_title {
 	font-weight: bold;
 	color: darkblue;
+	font-size: 13px;
 }
 .status_ok {
 	color: darkgreen;
@@ -335,9 +336,17 @@ function init_layout() {
 			$(this).text('Start Fetching Data');
 		}
 	});
+	
 	// final init stuff
 	$('#loading').remove();
+	
 	myLayout.init();
+	// bring the "Overview" tab to the front
+	var items = myLayout.root.getItemsByFilter(
+		function(item) { return item.componentName=='overview' } );
+	if (items.length==1) items[0].parent.setActiveContentItem(items[0]);
+	else if (items.length>1) console.error(items);
+	
 	setInterval(per_interval, 100);
 	do_fetch();
 	check_duplicate_ids();

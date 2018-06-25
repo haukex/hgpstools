@@ -1,3 +1,23 @@
 
 /* Put custom styles for widgets here. */
 
+.overview {
+	font-size: 14pt;
+}
+.ovw_msg {
+	border: 1px solid black;
+	margin: 0.5em 0;
+	padding: 0.4em 0.6em;
+	font-weight: bold;
+	color: white;
+	text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+}
+.ovw_error {
+	background: red;
+}
+.ovw_warning {
+	background: yellow;
+}
+.ovw_ok {
+	background: green;
+}
