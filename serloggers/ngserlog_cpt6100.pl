@@ -61,6 +61,44 @@ our $READ_SIZE = 0; # will be changed later
 our $ON_CONNECT = sub {
 	my $port = shift;
 	$port->timeout_s(2);
+	
+	#TODO Later: The following loop is based on the INITCMD loop.
+	# This copy&paste is a quick fix for now, it would be much better
+	# to abstract the sending of commands out into a subroutine.
+	# Also, this loop does not really handle the case well when the
+	# sensor is already streaming data. Perhaps we should send a
+	# "stop streaming" command first on init.
+	info('disabling filter on CPT6100');
+	FILTCMD: while (!$port->aborted) {
+		$port->write("#*FL 00\x0D");
+		my $in = $port->read(1);
+		if (defined $in) {
+			if ($in eq 'R')
+				{ info('filter set successful'); last FILTCMD }
+			elsif ($in eq '#') {
+				my $in2 = $port->read(7); # read rest of echoed command
+				if (defined $in2 && $in2 eq "*FL 00\x0D") {
+					warn "Recevied echo, RS-485 cable disconnected from FTDI?\n";
+					sleep 5;
+					next FILTCMD;
+				}
+				else
+					{ error("unexpected response from CPT6100: \"$in".($in2//'').'"') }
+			}
+			else
+				{ error("unexpected response from CPT6100: \"$in\"") }
+			sleep 2; # slow down retries a bit
+		}
+		elsif ($port->timed_out) {
+			warn "Read timeout on init filer, sensor disconnected?\n";
+			$port->timeout_s(5); # slow down retries a bit
+		}
+		else {
+			my $prob = $port->eof ? "EOF" : ($port->aborted ? "Aborted" : "Unknown");
+			error("read problem on init filter: $prob");
+			return }
+	}
+
 	info('setting CPT6100 to streaming mode');
 	INITCMD: while (!$port->aborted) {
 		$port->write("#*M 6\x0D");
