@@ -37,7 +37,6 @@ wrap_dex_post_request sub {
 	my $in = shift;
 	die "invalid command\n" unless $in->{command}
 		&& $in->{command}=~/\A(?:reboot|poweroff|service|date|preflight_checks)\z/;
-	$in->{command}='/home/pi/preflight_checks.pl' if $in->{command} eq 'preflight_checks';
 	my @cmd = ('sudo','-n',$in->{command});
 	if ($in->{command} eq 'service') {
 		die "invalid service command\n"
@@ -54,6 +53,12 @@ wrap_dex_post_request sub {
 			unless $in->{args} && @{$in->{args}}==1
 			&& $in->{args}[0]=~/^\s*--set=/;
 		push @cmd, $in->{args}[0];
+	}
+	#TODO: Document that we need to add the following to /etc/sudoers:
+	# piweb ALL = (pi:dialout) NOPASSWD: /home/pi/preflight_checks.pl
+	# (can also be appended to the novatelcmd_hack.pl line)
+	elsif ($in->{command} eq 'preflight_checks') {
+		@cmd = qw{ sudo -n -u pi -g dialout /home/pi/preflight_checks.pl };
 	}
 	my ($stdout, $stderr) = capture {
 		system(@cmd);
