@@ -42,6 +42,17 @@ $('#post_commands')
 	.append(btn_poweroff);
 add_btn_confirm(btn_poweroff);
 
+var btn_preflight = $('<button/>',
+	{ text: "Preflight Checks", class: "post_cmd",
+		click: function() {
+			do_post("sys_control", { command:"preflight_checks" } );
+		}
+	} );
+$('#post_commands')
+	.append('<div/>')
+	.append(btn_preflight);
+add_btn_confirm(btn_preflight);
+
 var btn_setdate = $('<button/>',
 	{ text: "Set Browser Time on Server", class: "post_cmd",
 		click: function() {

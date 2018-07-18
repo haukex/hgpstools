@@ -36,7 +36,8 @@ use Capture::Tiny qw/capture/;
 wrap_dex_post_request sub {
 	my $in = shift;
 	die "invalid command\n" unless $in->{command}
-		&& $in->{command}=~/\A(?:reboot|poweroff|service|date)\z/;
+		&& $in->{command}=~/\A(?:reboot|poweroff|service|date|preflight_checks)\z/;
+	$in->{command}='/home/pi/preflight_checks.pl' if $in->{command} eq 'preflight_checks';
 	my @cmd = ('sudo','-n',$in->{command});
 	if ($in->{command} eq 'service') {
 		die "invalid service command\n"
