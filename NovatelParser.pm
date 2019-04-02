@@ -3,6 +3,7 @@ package NovatelParser;
 use warnings;
 use strict;
 use Carp;
+use Data::Dump 'pp';
 use Regexp::Common qw/number/;
 
 our $VERSION = '0.01';
@@ -15,6 +16,14 @@ A parser for a limited subset of Novatel log messages.
 
 Based on the "SPAN on OEM6 Firmware Reference Manual, OM-20000144 / Rev 7 / January 2015"
 (page numbers mentioned in code comments refer to this document).
+
+Example: Getting all timestamps from a logger data file:
+
+ $ perl -wMstrict -MData::Dump=pp -MNovatelParser=parse_novatel -nle '
+   s/^\x00*(\d+\.\d+)\s+// or do{warn pp($_);next}; my $y=$1;
+   my $x=eval{parse_novatel($_)} or do {warn $@;next};
+   print $y,"\t",$x->{Week},"/",$x->{Seconds},(ref $x->{Fields} eq "HASH"
+   ? ("\t", $x->{Fields}{Week},"/",$x->{Fields}{Seconds}) : ())' novatel2txt_data.txt
 
 =cut
 
@@ -79,7 +88,7 @@ sub fieldsplit {
 	my $in = shift;
 	pos($in) = undef;
 	my @o = $in =~ m{ \G (?:\A|,) (?| ([^,"]*) | "([^"]*)" ) (?=,|\z) }gxc;
-	croak "failed to parse fields at pos ".pos($in).": $in" unless pos($in)==length($in);
+	croak "failed to parse fields at pos ".pos($in).": ".pp($in) unless pos($in)==length($in);
 	return \@o;
 }
 
@@ -111,13 +120,13 @@ sub parse_novatel {
 	croak "bad number of arguments to parse_novatel" unless @_==1;
 	my $in = shift;
 	croak "got undef instead of a Novatel record" unless defined $in;
-	$in =~ /\A$RE_RECORD_GENERIC\z/ or croak "failed to parse Novatel record: $in";
+	$in =~ /\A$RE_RECORD_GENERIC\z/ or croak "failed to parse Novatel record: ".pp($in);
 	my %rec = %+;
 	delete $rec{ChecksumData};
 	if (exists $FIELD_RE{$rec{Message}}) {
 		$rec{_ParsedAs} = $rec{Message};
 		$rec{Fields} =~ /\A$FIELD_RE{$rec{Message}}\z/
-			or croak "failed to parse Novatel record: $in";
+			or croak "failed to parse Novatel record: ".pp($in);
 		$rec{Fields} = { %+ };
 	}
 	else {
