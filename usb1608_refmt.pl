@@ -3,7 +3,7 @@ use warnings;
 use 5.026;
 use Data::Dump 'pp';
 use File::stat;
-use Getopt::Long qw/HelpMessage :config posix_default gnu_compat
+use Getopt::Long qw/ HelpMessage :config posix_default gnu_compat
 	bundling auto_version auto_help /;
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
@@ -12,6 +12,7 @@ use Getopt::Long qw/HelpMessage :config posix_default gnu_compat
 
  usb1608_refmt.pl [OPTIONS] [FILE(s)]
  OPTIONS:
+   -a | --all       - Output all records, not just data
    -R | --reverse   - Reverse operation
 
 This script takes a block-based file as output by our custom C<read-usb1608fsplus>
@@ -22,13 +23,14 @@ and also reverses the process with the -R switch.
 
 Testing:
 
- $ ( for FN in `find SEARCHPATH -name usb1608fsplus_out.txt`; do echo "##### $FN #####"; ./usb1608_refmt.pl $FN | ./usb1608_refmt.pl -R | diff $FN - ; done ) 2>&1 | less
+ $ ( for FN in `find SEARCHPATH -name usb1608fsplus_out.txt`; do echo "##### $FN #####"; ./usb1608_refmt.pl -a $FN | ./usb1608_refmt.pl -R | diff $FN - ; done ) 2>&1 | less
 
 =cut
 
 our $VERSION = '0.01';
 
 GetOptions(
+	'all|a'     => \( my $ALLDATA ),
 	'reverse|R' => \( my $REVERSE ),
 	) or HelpMessage(-exitval=>255);
 
@@ -78,12 +80,11 @@ for $ARGV (@ARGV) {
 		chomp( my $rec = $& );
 		die pp($rec) if index($rec,"\\n")>=0;
 		$tm = $+{tm} if $+{tm};
-		say $tm, "\t", $rec=~s/\n/\\n/gr;
+		say $tm, "\t", $rec=~s/\n/\\n/gr if $+{tm} || $ALLDATA;
 	}
 	warn "$ARGV: Skipping ".pp(''.substr($data,$plme))."\n" if $plme!=length($data);
 }
 
-1;
 __END__
 
 =head1 Author, Copyright, and License
