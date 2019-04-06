@@ -5,6 +5,7 @@ use Data::Dump 'pp';
 use File::stat;
 use Getopt::Long qw/ HelpMessage :config posix_default gnu_compat
 	bundling auto_version auto_help /;
+$|++;
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -13,6 +14,7 @@ use Getopt::Long qw/ HelpMessage :config posix_default gnu_compat
  usb1608_refmt.pl [OPTIONS] [FILE(s)]
  OPTIONS:
    -a | --all       - Output all records, not just data
+   -q | --quiet     - Be quiet (don't report skipped data)
    -R | --reverse   - Reverse operation
 
 This script takes a block-based file as output by our custom C<read-usb1608fsplus>
@@ -31,6 +33,7 @@ our $VERSION = '0.01';
 
 GetOptions(
 	'all|a'     => \( my $ALLDATA ),
+	'quiet|q'   => \( my $QUIET   ),
 	'reverse|R' => \( my $REVERSE ),
 	) or HelpMessage(-exitval=>255);
 
@@ -75,14 +78,14 @@ for $ARGV (@ARGV) {
 	my $plme = 0; # previous "last match end"
 	pos($data) = undef;
 	while ( $data=~/$USB1608_LOG_RE/gc ) {
-		warn "$ARGV: Skipping ".pp(''.substr($data,$plme,$-[0]-$plme))."\n" if $plme!=$-[0];
+		warn "$ARGV: Skipping ".pp(''.substr($data,$plme,$-[0]-$plme))."\n" if !$QUIET && $plme!=$-[0];
 		$plme = $+[0];
 		chomp( my $rec = $& );
 		die pp($rec) if index($rec,"\\n")>=0;
 		$tm = $+{tm} if $+{tm};
 		say $tm, "\t", $rec=~s/\n/\\n/gr if $+{tm} || $ALLDATA;
 	}
-	warn "$ARGV: Skipping ".pp(''.substr($data,$plme))."\n" if $plme!=length($data);
+	warn "$ARGV: Skipping ".pp(''.substr($data,$plme))."\n" if !$QUIET && $plme!=length($data);
 }
 
 __END__
