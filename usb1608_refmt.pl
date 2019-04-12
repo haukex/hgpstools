@@ -13,9 +13,10 @@ $|++;
 
  usb1608_refmt.pl [OPTIONS] [FILE(s)]
  OPTIONS:
-   -a | --all       - Output all records, not just data
-   -q | --quiet     - Be quiet (don't report skipped data)
-   -R | --reverse   - Reverse operation
+   -a | --all           - Output all records, not just data
+   -o | --outfile FILE  - Output to this file instead of STDOUT
+   -q | --quiet         - Be quiet (don't report skipped data)
+   -R | --reverse       - Reverse operation
 
 This script takes a block-based file as output by our custom C<read-usb1608fsplus>
 program and rewrites it into a line-based format that matches our other loggers,
@@ -32,10 +33,16 @@ Testing:
 our $VERSION = '0.01';
 
 GetOptions(
-	'all|a'     => \( my $ALLDATA ),
-	'quiet|q'   => \( my $QUIET   ),
-	'reverse|R' => \( my $REVERSE ),
+	'all|a'       => \( my $ALLDATA ),
+	'outfile|o=s' => \( my $OUTFILE ),
+	'quiet|q'     => \( my $QUIET   ),
+	'reverse|R'   => \( my $REVERSE ),
 	) or HelpMessage(-exitval=>255);
+
+if (defined $OUTFILE) {
+	open my $fh, '>', $OUTFILE or die "$OUTFILE: $!";
+	select($fh);
+}
 
 if ($REVERSE) {
 	while (<>) {
