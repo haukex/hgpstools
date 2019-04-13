@@ -14,9 +14,10 @@ $|++;
  usb1608_refmt.pl [OPTIONS] [FILE(s)]
  OPTIONS:
    -a | --all           - Output all records, not just data
+   -R | --reverse       - Reverse operation
    -o | --outfile FILE  - Output to this file instead of STDOUT
    -q | --quiet         - Be quiet (don't report skipped data)
-   -R | --reverse       - Reverse operation
+   -d | --debug         - Enable debug output
 
 This script takes a block-based file as output by our custom C<read-usb1608fsplus>
 program and rewrites it into a line-based format that matches our other loggers,
@@ -34,21 +35,27 @@ our $VERSION = '0.01';
 
 GetOptions(
 	'all|a'       => \( my $ALLDATA ),
+	'reverse|R'   => \( my $REVERSE ),
 	'outfile|o=s' => \( my $OUTFILE ),
 	'quiet|q'     => \( my $QUIET   ),
-	'reverse|R'   => \( my $REVERSE ),
+	'debug|d'     => \( my $DEBUG   ),
 	) or HelpMessage(-exitval=>255);
 
 if (defined $OUTFILE) {
 	open my $fh, '>', $OUTFILE or die "$OUTFILE: $!";
+	say STDERR "Selecting $OUTFILE for output" if $DEBUG;
 	select($fh);
 }
 
 if ($REVERSE) {
+	die "Can't use --reverse and --all together" if $ALLDATA;
+	my $cnt=0;
 	while (<>) {
 		my ($rec) = /^\d+\.\d+\t(.+)\z/s or die pp($_);
 		print $rec=~s/\\n/\n/gr;
+		$cnt++;
 	}
+	say STDERR "Read/wrote $cnt records" if $DEBUG;
 	exit;
 }
 
@@ -77,6 +84,7 @@ my $USB1608_LOG_RE = qr{ # for chunking a file into segments
 	)
 }msxn;
 
+my ($incnt,$skipcnt,$outcnt)=(0)x3;
 for $ARGV (@ARGV) {
 	open ARGV, '<', $ARGV or do { warn "$ARGV: $!"; next };
 	my $tm = ( stat(*ARGV)->ctime // 0 ).'.000000';
@@ -85,15 +93,26 @@ for $ARGV (@ARGV) {
 	my $plme = 0; # previous "last match end"
 	pos($data) = undef;
 	while ( $data=~/$USB1608_LOG_RE/gc ) {
-		warn "$ARGV: Skipping ".pp(''.substr($data,$plme,$-[0]-$plme))."\n" if !$QUIET && $plme!=$-[0];
+		if ($plme!=$-[0]) {
+			$skipcnt++;
+			warn "$ARGV: Skipping ".pp(''.substr($data,$plme,$-[0]-$plme))."\n" if !$QUIET;
+		}
+		$incnt++;
 		$plme = $+[0];
 		chomp( my $rec = $& );
 		die pp($rec) if index($rec,"\\n")>=0;
 		$tm = $+{tm} if $+{tm};
-		say $tm, "\t", $rec=~s/\n/\\n/gr if $+{tm} || $ALLDATA;
+		if ( $+{tm} || $ALLDATA ) {
+			say $tm, "\t", $rec=~s/\n/\\n/gr;
+			$outcnt++;
+		}
 	}
-	warn "$ARGV: Skipping ".pp(''.substr($data,$plme))."\n" if !$QUIET && $plme!=length($data);
+	if ($plme!=length($data)) {
+		$skipcnt++;
+		warn "$ARGV: Skipping ".pp(''.substr($data,$plme))."\n" if !$QUIET;
+	}
 }
+say STDERR "Read $incnt records, skipped $skipcnt pieces of data, wrote $outcnt records" if $DEBUG;
 
 __END__
 
