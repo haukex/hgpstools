@@ -80,6 +80,7 @@ my $state='(none)';
 my $prevheight_m=0;
 while (<>) {
 	chomp;
+	s/\A\x00+//;
 	s/\A(\d+\.\d+)\t// or die pp($_);
 	my $syst = $1;
 	my $r = parse_novatel($_);
