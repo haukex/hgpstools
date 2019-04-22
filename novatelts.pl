@@ -51,6 +51,29 @@ sub gps2sec { # this is how load_data.py does it
 	return 315964800 + $gpsweek*604800 + $gpssec - $LEAP + 19;
 }
 
+# https://www.novatel.com/support/knowledge-and-learning/published-papers-and-documents/unit-conversions/
+# January 28, 2005 13:30 <-> GNSS Week 1307, 480,600 seconds
+# January 28, 2005 13:30 <-> UNIX time 1106919000
+# Note: Jan 2005 to Jan 2019: five leap seconds added
+#dd gps2dt('1307','480600.0');  # ="1106919000" => right?
+#dd gps2sec('1307','480600.0'); # ="1106918982" => wrong? (18 secs less)
+
+# http://leapsecond.com/java/gpsclock.htm
+# UTC 2019-04-18 21:11:57 (1555621917) <-> GPS week 2049, 421935 s
+#dd gps2dt('2049','421935.0');  # ="1555621935" => wrong ?? (18 secs more)
+#dd gps2sec('2049','421935.0'); # ="1555621917" => right ??
+
+# ==> This is a ludicrously complex topic.
+# https://unix.stackexchange.com/questions/283164/unix-seconds-tai-si-seconds-leap-seconds-and-real-world-code
+# https://news.ycombinator.com/item?id=9017761
+# https://en.wikipedia.org/wiki/International_Atomic_Time
+# https://en.wikipedia.org/wiki/Unix_time#TAI-based_variant
+# ... many more
+# ==> Luckily, we actually don't need to synchronize our systems to UTC or TAI,
+# we need to synchronize our sensors *to*each*other*, and luckily all of our logs,
+# including GPS logs, include the UNIX timestamp to do that.
+# In the future, we could consider logging something other than the UNIX timestamp (TAI?).
+
 my $code = $PYTHON ? \&gps2sec : \&gps2dt;
 local ($\,$,)=($/,",");
 while (<>) {
