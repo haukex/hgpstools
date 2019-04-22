@@ -18,6 +18,9 @@ A simple script to convert GPS timestamps.
  OPTIONS:
    --head     - Use the GPS timestamp from the header instead of body
    --delta    - Output the delta between the UNIX and GPS times
+   --state    - Instead of timestamps, track State in IMURATEPVASA
+   --dt       - Output Date/Time values instead of UNIX timestamps
+   --height=N - With --state, report height changes of N meters
 
 =head1 NOTES
 
@@ -27,9 +30,14 @@ A simple script to convert GPS timestamps.
 =cut
 
 GetOptions(
-	'head'  => \( my $HEADTIME ),
-	'delta' => \( my $DELTA ),
+	'head'     => \( my $HEADTIME ),
+	'delta'    => \( my $DELTA ),
+	'state'    => \( my $TRACKSTATE ),
+	'dt'       => \( my $DTOUT ),
+	'height=i' => \( my $HEIGHT_M ),
 	) or HelpMessage(-exitval=>255);
+HelpMessage(-msg=>'--height requires --state',-exitval=>255)
+	if defined($HEIGHT_M) && !$TRACKSTATE;
 
 sub secsplit { # turn "seconds.decimal" into seconds and nanoseconds
 	my $in = shift;
@@ -65,14 +73,30 @@ sub gps2dt {
 #TODO Later: take a look at https://gssc.esa.int/navipedia/index.php/Transformations_between_Time_Systems
 
 local ($\,$,)=($/,",");
+my $conv = $DTOUT
+	? sub { (ref $_[0] ? $_[0] : DateTime->from_epoch(epoch=>$_[0]))->strftime('%Y-%m-%d %H:%M:%S.%3N %Z') }
+	: sub {  ref $_[0] ? $_[0]->strftime("%s.%6N") : sprintf('%.6f', $_[0]) };
+my $state='(none)';
+my $prevheight_m=0;
 while (<>) {
 	chomp;
 	s/\A(\d+\.\d+)\t// or die pp($_);
 	my $syst = $1;
 	my $r = parse_novatel($_);
+	next if $$r{_ParsedAs} eq '_generic';
 	my $gdt = gps2dt(
 			$HEADTIME ? ($$r{Week}, $$r{Seconds})
-			: ($$r{Fields}{Week}, $$r{Fields}{Seconds})
-		)->strftime("%s.%6N");
-	print $syst, $gdt, $DELTA ? $gdt-$syst : ();
+			: ($$r{Fields}{Week}, $$r{Fields}{Seconds}) );
+	if ( $TRACKSTATE ) {
+		if ( $$r{Message} eq 'IMURATEPVASA' ) {
+			if ( $$r{Fields}{Status} ne $state || defined $HEIGHT_M && abs($prevheight_m-$$r{Fields}{Height})>$HEIGHT_M ) {
+				print $conv->($syst), $conv->($gdt), $state, $$r{Fields}{Status}, defined($HEIGHT_M)?$$r{Fields}{Height}:();
+				$state = $$r{Fields}{Status};
+				$prevheight_m = $$r{Fields}{Height};
+			}
+		}
+	}
+	else {
+		print $conv->($syst), $conv->($gdt), $DELTA ? $gdt-$syst : ();
+	}
 }
