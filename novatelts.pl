@@ -56,6 +56,8 @@ sub secsplit { # turn "seconds.decimal" into seconds and nanoseconds
 # leap seconds are occasionally inserted into UTC and GPS reference time is continuous."
 sub gps2dt {
 	my ($gpsweek,$gpssec) = @_;
+	# alternative that produces the same output FOR 2019 - TODO: how to calculate "37" automatically?
+	return DateTime->from_epoch( epoch => 315964800 + $gpsweek*604800 + $gpssec - 37 + 19 ) if 0;
 	my ($gs,$gns) = secsplit($gpssec);
 	state $odt = DateTime->new(year=>1980,month=>1,day=>6,hour=>0,minute=>0,second=>0,nanosecond=>0,time_zone=>'UTC');
 	my $dt = $odt->clone;
@@ -98,6 +100,6 @@ while (<>) {
 		}
 	}
 	else {
-		print $conv->($syst), $conv->($gdt), $DELTA ? $gdt-$syst : ();
+		print $conv->($syst), $conv->($gdt), $DELTA ? $gdt->epoch-$syst : ();
 	}
 }
