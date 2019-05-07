@@ -56,23 +56,34 @@ sub secsplit { # turn "seconds.decimal" into seconds and nanoseconds
 # leap seconds are occasionally inserted into UTC and GPS reference time is continuous."
 sub gps2dt {
 	my ($gpsweek,$gpssec) = @_;
-	# alternative that produces the same output FOR 2019 - TODO: how to calculate "37" automatically?
-	return DateTime->from_epoch( epoch => 315964800 + $gpsweek*604800 + $gpssec - 37 + 19 ) if 0;
+	# Alternative that produces the same output for 2019, *however*, the "37" would need to be calculated.
+	# Our load_data.py basically does exactly the same and relies on a config value for the "37".
+	#return DateTime->from_epoch( epoch => 315964800 + $gpsweek*604800 + $gpssec - 37 + 19 );
 	my ($gs,$gns) = secsplit($gpssec);
+	# DateTime does the leap second handling for us:
 	state $odt = DateTime->new(year=>1980,month=>1,day=>6,hour=>0,minute=>0,second=>0,nanosecond=>0,time_zone=>'UTC');
 	my $dt = $odt->clone;
-	$dt->add( seconds=>$gpsweek*60*60*24*7 ); # GPS weeks have a fixed number of seconds
-	$dt->add( seconds=>$gs, nanoseconds=>$gns );
+	# Note GPS weeks have a fixed number of seconds, so this calculation is ok:
+	$dt->add( seconds => $gpsweek*60*60*24*7 + $gs, nanoseconds=>$gns );
 	return $dt;
 }
-# Note: our load_data.py basically does "315964800 + $gpsweek*604800 + $gpssec - $LEAP + 19" where currently $LEAP=37
+
+# https://en.wikipedia.org/wiki/Leap_second
+# "In 1972, the leap-second system was introduced so that the broadcast UTC seconds could be made exactly equal to
+# the standard SI second ... After 1972, both clocks have been ticking in SI seconds, so the difference between their
+# readouts at any time is 10 seconds plus the total number of leap seconds that have been applied to UTC"
+# Leap Seconds 1972 to 2019: 27, so plus the 10 extra is 37 as of 2019. Current TAI - UTC is therefore 37.
+# "... so in 2018, UTC lags behind TAI by an offset of 37 seconds."
+# "It is also easy to convert GPS time to TAI, as TAI is always exactly 19 seconds ahead of GPS time."
+# DateTime->new(year=>2019,time_zone=>"UTC")->leap_seconds is 27.
 
 # https://www.novatel.com/support/knowledge-and-learning/published-papers-and-documents/unit-conversions/
 # January 28, 2005, 13:30 hours <=> GPS Week 1307, 480,600 seconds
 #print STDERR gps2dt('1307','480600.0')->strftime('%Y-%m-%dT%H:%M:%S.%3N%z'),"\n"; #TODO: why is this "2005-01-28T13:29:47.000+0000" ?
 # it works again if I change time_zone=>'UTC' to time_zone=>'floating', but then testing it against real data fails
 
-#TODO Later: take a look at https://gssc.esa.int/navipedia/index.php/Transformations_between_Time_Systems
+# https://gssc.esa.int/navipedia/index.php/Transformations_between_Time_Systems
+# "TAI = GPST + 19.000 seconds"
 
 local ($\,$,)=($/,",");
 my $conv = $DTOUT

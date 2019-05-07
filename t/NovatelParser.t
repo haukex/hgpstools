@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use warnings;
 use strict;
-use Test::More tests=>11;
+use Test::More tests=>13;
 
 # SEE THE END OF THIS FILE FOR AUTHOR, COPYRIGHT AND LICENSE INFORMATION
 
@@ -63,6 +63,32 @@ is_deeply parse_novatel(q{%IMURATEPVASA,2010,298810.100;2010,298810.078576000,52
 		},
 		Checksum=>'8d42cb89',
 	}, 'parse_novatel IMURATEPVASA';
+
+is_deeply parse_novatel(q{#TIMEA,COM1,0,50.5,FINESTEERING,1337,410010.000,00000000,9924,1984;VALID,1.953377165e-09,7.481712815e-08,-12.99999999492,2005,8,25,17,53,17000,VALID*e2fc088c}),
+	{
+		Sync=>'#', Message=>'TIMEA', Week=>1337, Seconds=>'410010.000',
+		Port=>'COM1', SequenceNr=>'0', IdleTime=>'50.5', TimeStatus=>'FINESTEERING',
+		ReceiverStatus=>'00000000', Reserved=>'9924', ReceiverSWVersion=>'1984',
+		_ParsedAs=>'TIMEA', Fields => {
+			Status=>'VALID', Offset=>'1.953377165e-09', OffsetStdDev=>'7.481712815e-08',
+			UTCOffset=>'-12.99999999492', UTCYear=>'2005', UTCMonth=>'8', UTCDay=>'25',
+			UTCHour=>'17', UTCMinute=>'53', UTCMillisec=>'17000', UTCStatus=>'VALID',
+		},
+		Checksum=>'e2fc088c',
+	}, 'parse_novatel TIMEA 1';
+
+is_deeply parse_novatel(q{#TIMEA,COM3,0,71.0,FINESTEERING,2051,148285.000,00000020,9924,14102;VALID,2.518712070e-10,1.018088470e-09,-18.00000000000,2019,4,29,17,11,7000,VALID*98650e53}),
+	{
+		Sync=>'#', Message=>'TIMEA', Week=>2051, Seconds=>'148285.000',
+		Port=>'COM3', SequenceNr=>'0', IdleTime=>'71.0', TimeStatus=>'FINESTEERING',
+		ReceiverStatus=>'00000020', Reserved=>'9924', ReceiverSWVersion=>'14102',
+		_ParsedAs=>'TIMEA', Fields => {
+			Status=>'VALID', Offset=>'2.518712070e-10', OffsetStdDev=>'1.018088470e-09',
+			UTCOffset=>'-18.00000000000', UTCYear=>'2019', UTCMonth=>'4', UTCDay=>'29',
+			UTCHour=>'17', UTCMinute=>'11', UTCMillisec=>'7000', UTCStatus=>'VALID',
+		},
+		Checksum=>'98650e53',
+	}, 'parse_novatel TIMEA 2';
 
 
 __END__

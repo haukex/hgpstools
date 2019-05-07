@@ -117,6 +117,22 @@ our %FIELD_RE = (
 			| DETERMINING_ORIENTATION # INS is determining the IMU axis aligned with gravity.
 			| WAITING_INITIALPOS )    # The INS filter has determined the IMU orientation and is awaiting an initial position estimate to begin the alignment process.
 	}x,
+	# --- TIME / OEM6 Family Firmware Reference Manual ---
+	TIMEA => qr{
+		(?<Status> VALID  # The clock model is valid
+			| CONVERGING  # The clock model is near validity
+			| ITERATING   # The clock model is iterating towards validity
+			| INVALID     # The clock model is not valid
+			| ERROR ) ,   # Clock model error
+		(?<Offset>    $RE_REAL )  ,  (?<OffsetStdDev> $RE_REAL ) ,
+		(?<UTCOffset> $RE_REAL )  ,  (?<UTCYear>      $RE_INT  ) ,
+		# If UTC time is unknown, the values for month and day are 0.
+		(?<UTCMonth>  $RE_INT  )  ,  (?<UTCDay>       $RE_INT  ) ,
+		(?<UTCHour>   $RE_INT  )  ,  (?<UTCMinute>    $RE_INT  ) ,
+		(?<UTCMillisec> $RE_INT ) , # Maximum of 60999 when leap second is applied.
+		# "Warning" indicates that the leap seconds value is used as a default due to the lack of an almanac.
+		(?<UTCStatus> INVALID | VALID | WARNING )
+	}x,
 );
 
 # VERSIONA not (yet) implemented, is described in: "OEM6 Family Firmware Reference Manual, OM-20000129 / Rev 8 / January 2015"
