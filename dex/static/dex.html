@@ -116,6 +116,7 @@ var raw_data_is_visible=false;
 function display_age(elem, time_sec, limits) {
 	elem.text(time_sec.toFixed(3)+" s");
 	if (!limits) limits = { warn_s: 3, error_s: 6 };
+	//TODO: Error status widget
 	if (time_sec>limits.error_s)
 		elem.addClass("status_err").removeClass("status_ok status_warn");
 	else if (time_sec>limits.warn_s)

@@ -10,6 +10,11 @@ with USB-to-serial hot-plugging support.
 
  ngserlog.pl CONFIGFILE
 
+TODO: How to send commands logger (device), generic interface possible?
+(Signal+Filesystem, Pipe, Network, etc?)
+TODO: Is it possible to log multiple serial ports at once?
+TODO: How to get data into following processes other than file system?
+
 =head1 DESCRIPTION
 
 Together with a configuration file, this is a logger for a serial port

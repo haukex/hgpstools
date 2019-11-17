@@ -33,6 +33,7 @@ along with this program. If not, see L<http://www.gnu.org/licenses/>.
 use DexPostRequest qw/wrap_dex_post_request/;
 use Capture::Tiny qw/capture/;
 
+#TODO: Generalize this interface for executing system commands
 wrap_dex_post_request sub {
 	my $in = shift;
 	die "invalid command\n" unless $in->{command}
