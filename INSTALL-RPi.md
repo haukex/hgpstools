@@ -31,7 +31,7 @@ according to the installation instructions:
 	
 	b.	After expanding the partition and rebooting,
 	run an update using `apt-get` or `aptitude`.
-	Also do a run of `sudo rpi-update` to update the firmware.
+	Also do a run of `sudo rpi-update` to update the firmware (TODO: not on modern Raspbians).
 	(I also usually install `vim` at this point
 	to make the following steps easier.)
 	
@@ -110,14 +110,21 @@ according to the installation instructions:
 	package `bsd-mailx` and then send a test mail via:
 	`echo "This is a mailx test" | mailx -s "mailx test" recipient@somewhere.com`
 	
+	To send mail to servers where TLS is required, add the following lines to
+	`/etc/postfix/main.cf` (as documented in `/usr/share/doc/postfix/README.Debian.gz`
+	and `man 5 postconf`). You may also say `may` instead of `verify` for optional TLS.
+	
+		smtp_tls_security_level = verify
+		smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+	
 	e.	Optional: `gpsd`, but to avoid conflicts with our logger do
 	`sudo update-rc.d -f gpsd remove` and `sudo service gpsd stop`
 	
 	f.	Optional: Additional useful packages are `screen`, `perl-doc`, `vim`,
-	`lsof`
+	`lsof`, `cpanminus`, `liblocal-lib-perl`, `command-not-found`
 	
 	g.	Packages that are already installed in the latest version of Raspbian
-	I used, but may be missing on older or *"lite"* versions: `git`
+	I used, but may be missing on older or *"lite"* versions: `git`, `dnsutils`
 	
 4.	In a suitable directory (like `/home/pi`) do:
 `git clone --recursive https://bitbucket.org/haukex/hgpstools.git`
