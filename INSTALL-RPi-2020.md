@@ -41,25 +41,29 @@ Basic Setup
 	
 		1. Password, Hostname
 		
-		3. Locales: Add needed locales, don't delete existing locales, set C.UTF-8 as default
+		2. Locales: Add needed locales, don't delete existing locales, set C.UTF-8 as default
 		
-		4. If setting the keyboard layout setting fails, edit `/etc/default/keyboard`
+		3. If setting the keyboard layout setting fails, edit `/etc/default/keyboard`
 		   and e.g. set `XKBLAYOUT="de"` and `XKBVARIANT="nodeadkeys"`
 		
 		4. All other options as appropriate
 	
 	5. `sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade` (reboot afterwards if necessary)
 	
-	6. `sudo apt-get install --no-install-recommends ufw fail2ban vim git screen ntpdate socat lsof dnsutils elinks lftp proxychains4 build-essential cpanminus liblocal-lib-perl perl-doc`
+	6. `sudo apt-get install --no-install-recommends ufw fail2ban vim git screen minicom ntpdate socat lsof tshark dnsutils elinks lftp proxychains4 build-essential cpanminus liblocal-lib-perl perl-doc`
 	
-	7. `perl -Mlocal::lib >>~/.profile`
+	7. Misc.
 	
-	8. Set up any files like `.bash_aliases`, `.vimrc`, etc.
+		- `sudo adduser pi wireshark`
+		- `perl -Mlocal::lib >>~/.profile`
+		- Set up any files like `.bash_aliases`, `.vimrc`, etc.
 
 2. **UFW**: `sudo ufw allow OpenSSH && sudo ufw enable`
 
+	- `sudo ufw logging off`, if logging messages fill up the syslog too much
+
 3. **SSH**:
-	
+
 	1. Set up SSH keys
 	
 	2. `sudo vi /etc/ssh/sshd_config`
@@ -88,7 +92,7 @@ Basic Setup
 		- `maxretry  = 3`
 		- `banaction = ufw`
 		- In section `[sshd]`, set `mode = aggressive`
-		
+	
 	5. In `/etc/fail2ban/fail2ban.conf`, set `dbpurgeage = 7d`
 	
 	6. `sudo systemctl restart fail2ban`, then check status:
@@ -97,7 +101,7 @@ Basic Setup
 		- `sudo fail2ban-client status sshd`
 		- `sudo zgrep 'Ban' /var/log/fail2ban.log*`
 	
-	8. Note: Manual banning of repeat offenders:
+	7. Note: Manual banning of repeat offenders:
 		- `sudo zgrep Ban /var/log/fail2ban.log* | perl -wMstrict -Mvars=%x -nale '$x{$F[7]}++}{print "$_\t$x{$_}" for grep {$x{$_}>1} sort { $x{$b}<=>$x{$a} } keys %x'`
 		- `sudo ufw deny from ADDRESS comment 'too many failed login attempts'`
 
@@ -168,6 +172,7 @@ Basic Setup
 	  This can be done via `sudo -i crontab -e`: `0 5 * * *  /sbin/shutdown --reboot +5; /usr/bin/wall 'Reboot in 5 minutes!'`
 	
 	- Serial port: `sudo adduser pi dialout`, `stty -F /dev/ttyS0 19200 cs8 -parenb raw -crtscts -echo`, `cat /dev/ttyS0`
+	  (Also: `minicom -D/dev/ttyS0` and `screen /dev/ttyS0 19200`)
 
 
 Author, Copyright, and License
