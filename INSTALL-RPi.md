@@ -10,6 +10,9 @@ Berlin, Germany, <http://www.igb-berlin.de/>
 RPi Basic Installation and Serial Logging Daemon and Utilities
 --------------------------------------------------------------
 
+**Notice:** The basic Raspberry Pi setup notes in the following have
+been superseded by `INSTALL-RPi-2020.md`!
+
 These instructions assume you have some basic knowledge of using
 a Raspberry Pi and Raspbian / Debian.
 Tested March 2016 on a Raspberry Pi 1 Model B with Raspbian 2016-02-26,

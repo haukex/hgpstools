@@ -35,11 +35,15 @@ you may still need to have a look at the code.
 The following gives some starting points, but note this list is not complete,
 have a look around this repository to discover all the available scripts.
 
+*	**`INSTALL-RPi-2020.md`**
+	
+	The instructions I use on getting a basic Raspberry Pi setup.
+	
 *	**`INSTALL-RPi.md`**
 	
 	Instructions on how to set up the serial logging daemon (mentioned below)
-	on a Raspberry Pi, including general-purpose instructions on doing the
-	initial setup of a Raspberry Pi.
+	on a Raspberry Pi. **Note** that the general setup instructions in this
+	file have been superseded by the above.
 	
 *	**`RPi3_Adafruit-GPS_NTP-chrony.md`**  
 	
