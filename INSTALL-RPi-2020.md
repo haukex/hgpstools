@@ -13,6 +13,11 @@ Introduction
 These instructions assume you have some basic knowledge of using
 a Raspberry Pi and Raspbian / Debian.
 
+Note: Raspberry Pi OS 64-bit is currently (July 2020) still in beta and can be obtained from
+<https://downloads.raspberrypi.org/raspios_arm64/images/>.
+Older Raspbian images can be obtained from
+<https://downloads.raspberrypi.org/raspbian_lite/images/>.
+
 Last tested:
 
 - May 2020 on a Raspberry Pi Zero W with Raspbian Buster Lite 2020-02-13
@@ -39,7 +44,7 @@ Basic Setup
 	
 	4. `sudo raspi-config`
 	
-		1. Password, Hostname
+		1. **Password**, Hostname
 		
 		2. Locales: Add needed locales, don't delete existing locales, set C.UTF-8 as default
 		
@@ -48,9 +53,9 @@ Basic Setup
 		
 		4. All other options as appropriate
 	
-	5. `sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade` (reboot afterwards if necessary)
+	5. `sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y && sudo apt-get autoremove -y` (reboot afterwards if necessary)
 	
-	6. `sudo apt-get install --no-install-recommends ufw fail2ban vim git screen minicom ntpdate socat lsof tshark dnsutils elinks lftp proxychains4 build-essential cpanminus liblocal-lib-perl perl-doc`
+	6. `sudo apt-get install --no-install-recommends ufw fail2ban vim git screen minicom ntpdate socat lsof tshark dnsutils elinks lftp proxychains4 build-essential cpanminus liblocal-lib-perl perl-doc jq`
 	
 	7. Misc.
 	
