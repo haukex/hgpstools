@@ -21,6 +21,7 @@ Older Raspbian images can be obtained from
 Last tested:
 
 - May 2020 on a Raspberry Pi Zero W with Raspbian Buster Lite 2020-02-13
+- December 2020 on a Raspberry Pi Zero W with Raspberry Pi OS (32-bit) Lite 2020-12-02
 
 
 Basic Setup
@@ -40,24 +41,29 @@ Basic Setup
 			psk="pass"
 		}
 	
-	3. Log in with `pi` / `raspberry`
+	3. On the `rootfs` partition, edit `/etc/hostname` and set the desired hostname,
+	   and edit `/etc/hosts` to rename the `raspberrypi` entry as well
 	
-	4. `sudo raspi-config`
+	4. Boot the Pi and log in with `pi` / `raspberry`
 	
-		1. **Password**, Hostname
+	5. `sudo raspi-config`
+	
+		1. **Password**, Hostname (if not done above)
 		
-		2. Locales: Add needed locales, don't delete existing locales, set C.UTF-8 as default
+		2. Locales: Add needed locales (for me, `en_US.UTF-8` and `de_DE.UTF-8`),
+		   don't delete existing locales, set C.UTF-8 as default
 		
 		3. If setting the keyboard layout setting fails, edit `/etc/default/keyboard`
 		   and e.g. set `XKBLAYOUT="de"` and `XKBVARIANT="nodeadkeys"`
 		
 		4. All other options as appropriate
 	
-	5. `sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y && sudo apt-get autoremove -y` (reboot afterwards if necessary)
+	6. `sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y && sudo apt-get autoremove -y && echo Done` (reboot afterwards is usually necessary)
 	
-	6. `sudo apt-get install --no-install-recommends ufw fail2ban vim git screen minicom ntpdate socat lsof tshark dnsutils elinks lftp proxychains4 build-essential cpanminus liblocal-lib-perl perl-doc jq`
+	7. `sudo apt-get install --no-install-recommends ufw fail2ban vim git screen moreutils minicom ntpdate socat lsof tshark dnsutils elinks lftp proxychains4 build-essential cpanminus liblocal-lib-perl perl-doc jq`
+	   (these is my preferred toolset on top of the Lite edition, you may modify this as you like)
 	
-	7. Misc.
+	8. Misc.
 	
 		- `sudo adduser pi wireshark`
 		- `perl -Mlocal::lib >>~/.profile`
