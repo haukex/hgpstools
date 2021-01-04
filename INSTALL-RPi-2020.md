@@ -22,6 +22,7 @@ Last tested:
 
 - May 2020 on a Raspberry Pi Zero W with Raspbian Buster Lite 2020-02-13
 - December 2020 on a Raspberry Pi Zero W with Raspberry Pi OS (32-bit) Lite 2020-12-02
+- January 2021 on a Raspberry Pi 3B with Raspberry Pi OS (32-bit) Lite 2020-12-02
 
 
 Basic Setup
@@ -30,41 +31,53 @@ Basic Setup
 1. Flash the Raspbian image onto an SD card. See also:
 <https://www.raspberrypi.org/documentation/installation/installing-images/>
 	
-	1. <https://www.raspberrypi.org/documentation/remote-access/ssh/> -
-	   On the `boot` partition, touch a file `ssh`
+	1. On the `boot` partition:
 	
-	2. <https://www.raspberrypi.org/documentation/configuration/wireless/headless.md> -
-	   On the `rootfs` partition, edit `/etc/wpa_supplicant/wpa_supplicant.conf`:
+		1. Touch a file `ssh`
+		   (<https://www.raspberrypi.org/documentation/remote-access/ssh/>)
 		
-		network={
-			ssid="ssid"
-			psk="pass"
-		}
+		2. In the file `config.txt`, uncomment the `hdmi_force_hotplug=1` line.
+		
+		3. Edit `wpa_supplicant.conf` to the following (make sure file has LF line endings;
+		   <https://www.raspberrypi.org/documentation/configuration/wireless/headless.md>)
+			
+			ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+			update_config=1
+			country=<Insert 2 letter ISO 3166-1 country code here, e.g. DE>
+			
+			network={
+				ssid="ssid"
+				psk="pass"
+			}
 	
-	3. On the `rootfs` partition, edit `/etc/hostname` and set the desired hostname,
-	   and edit `/etc/hosts` to rename the `raspberrypi` entry as well
+	2. On the `rootfs` partition:
 	
-	4. Boot the Pi and log in with `pi` / `raspberry`
+		1. Edit `/etc/hostname` and set the desired hostname,
+		
+		2. Edit `/etc/hosts` to rename the `raspberrypi` entry as well
 	
-	5. `sudo raspi-config`
+	3. Boot the Pi and log in with `pi` / `raspberry`
+	
+	4. `sudo raspi-config`
 	
 		1. **Password**, Hostname (if not done above)
 		
 		2. Locales: Add needed locales (for me, `en_US.UTF-8` and `de_DE.UTF-8`),
-		   don't delete existing locales, set C.UTF-8 as default
+		   don't delete existing locales, set `C.UTF-8` as default
 		
-		3. If setting the keyboard layout setting fails, edit `/etc/default/keyboard`
-		   and e.g. set `XKBLAYOUT="de"` and `XKBVARIANT="nodeadkeys"`
+		3. If setting the keyboard layout setting fails (e.g. if no keyboard connected),
+		   edit `/etc/default/keyboard` and e.g. set `XKBLAYOUT="de"` and `XKBVARIANT="nodeadkeys"`
 		
 		4. All other options as appropriate
 	
-	6. `sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y && sudo apt-get autoremove -y && echo Done` (reboot afterwards is usually necessary)
+	5. `sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y && sudo apt-get autoremove -y && echo Done` (reboot afterwards is usually necessary)
 	
-	7. `sudo apt-get install --no-install-recommends ufw fail2ban vim git screen moreutils minicom ntpdate socat lsof tshark dnsutils elinks lftp proxychains4 build-essential cpanminus liblocal-lib-perl perl-doc jq`
+	6. `sudo apt-get install --no-install-recommends ufw fail2ban vim git screen moreutils minicom ntpdate socat lsof tshark dnsutils elinks lftp proxychains4 build-essential cpanminus liblocal-lib-perl perl-doc jq`
 	   (these is my preferred toolset on top of the Lite edition, you may modify this as you like)
 	
-	8. Misc.
+	7. Misc.
 	
+		- `rm -vf /boot/wpa_supplicant.conf`
 		- `sudo adduser pi wireshark`
 		- `perl -Mlocal::lib >>~/.profile`
 		- Set up any files like `.bash_aliases`, `.vimrc`, etc.
@@ -139,7 +152,7 @@ Basic Setup
 	#=> add the line "smtp_tls_security_level = may"
 	#=> add the line "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
 	sudo dpkg-reconfigure postfix
-	echo "root: pi" | sudo tee -a /etc/aliases
+	echo "root: pi" | sudo tee -a /etc/aliases && cat /etc/aliases
 	sudo newaliases && sudo systemctl restart postfix
 	echo "This is a mailx test" | mailx -s "mailx test" root
 	alpine
