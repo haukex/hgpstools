@@ -202,7 +202,7 @@ Basic Setup
 Author, Copyright, and License
 ------------------------------
 
-Copyright (c) 2016-2020 Hauke Dämpfling <haukex@zero-g.net>
+Copyright (c) 2016-2021 Hauke Dämpfling <haukex@zero-g.net>
 at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
 Berlin, Germany, <http://www.igb-berlin.de/>
 
