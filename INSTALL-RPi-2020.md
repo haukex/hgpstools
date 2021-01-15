@@ -190,7 +190,7 @@ Basic Setup
 		2. When you connect to the RPi via SSH, use `ssh -R12333 pi@...`
 		
 		3. Then, commands that support it, you can use e.g. `ALL_PROXY=socks5h://localhost:12333 curl http://example.com`,
-		   for other commands use e.g. `sudo proxychains4 apt-get update`
+		   for other commands use e.g. `sudo proxychains4 apt-get update` or `proxychains4 -q cpanm ...`
 	
 	- Sometimes, on some WiFi nets, WiFi will stop working unless I reboot the Pi once in a while.
 	  This can be done via `sudo -i crontab -e`: `0 5 * * *  /sbin/shutdown --reboot +5; /usr/bin/wall 'Reboot in 5 minutes!'`
