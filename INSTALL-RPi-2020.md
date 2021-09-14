@@ -23,6 +23,8 @@ Last tested:
 - May 2020 on a Raspberry Pi Zero W with Raspbian Buster Lite 2020-02-13
 - December 2020 on a Raspberry Pi Zero W with Raspberry Pi OS (32-bit) Lite 2020-12-02
 - January 2021 on a Raspberry Pi 3B with Raspberry Pi OS (32-bit) Lite 2020-12-02
+- May 2021 on a Raspberry Pi 3B+ with Raspberry Pi OS (32-bit) Lite 2021-03-04
+- September 2021 on a Raspberry Pi 3B+ with Rasperry Pi OS (32-bit) Lite 2021-05-07
 
 
 Basic Setup
@@ -56,7 +58,56 @@ Basic Setup
 		
 		2. Edit `/etc/hosts` to rename the `raspberrypi` entry as well
 	
+	3. *Optional Procedure:* Protecting the SD card against wear and sudden power-offs
+	   by making root FS read-only ("overlay filesystem") with a writable data partition
+	
+		1. Prevent automatic resize of the root filesystem
+		   as per <https://raspberrypi.stackexchange.com/a/56623>:
+		
+			1. In `/boot/cmdline.txt`, remove `init=/usr/lib/raspi-config/init_resize.sh`
+			
+			2. In the RPi's root filesystem, delete
+			   `/etc/init.d/resize2fs_once` and `/etc/rc3.d/S01resize2fs_once`
+		
+		2. Using e.g. `gparted`, resize the root filesystem on the SD card to the
+		   desired size, e.g. 16GB, and then create a new ext4 partition covering
+		   the rest of the space on the SD card, label it e.g. `data`
+		
+		3. After booting, create an `/etc/fstab` entry, you can get the ID via
+		   `lsblk -o PARTUUID /dev/disk/by-label/data`. The entry might look like:
+		   `PARTUUID=9730496b-03  /data  ext4  defaults,noatime  0  2`
+		   where you should also do `sudo mkdir -v /data`. Then reboot.
+		
+		4. `sudo mkdir -v /data/pi` and `sudo chown pi:pi /data/pi`
+		
+		5. Note there is no point in setting up the "unattended upgrades" below,
+		   you'll have to do updates manually. Also, while `fail2ban` (below) will
+		   still generally work if the system isn't rebooted too often, note its
+		   data will *not* be persisted across reboots unless all of it (including
+		   the logs it uses) is placed on the `/data` partition.
+		
+		6. If setting up `postfix` and `alpine`, do this afterwards:
+		
+				sudo mkdir -v /data/spool
+				sudo systemctl stop postfix
+				ls -l /var/spool/mail  # => should normally be a symlink to ../mail !
+				sudo mv -v /var/mail /data/spool/mail
+				sudo mv -v /var/spool/postfix /data/spool/postfix
+				sudo ln -svf /data/spool/mail /var/
+				sudo ln -svf /data/spool/mail /var/spool/
+				sudo ln -svf /data/spool/postfix /var/spool/
+				sudo systemctl start postfix
+				mv -v ~/mail /data/pi
+				ln -svf /data/pi/mail ~
+		
+		7. Later, after completing the install, you can enable the "Overlay File System"
+		   in the "Performance Options" of `raspi-config`. Remember that if making changes
+		   that need to persist across reboots, you'll need to disable and re-enable this
+		   option, rebooting each time.
+	
 	3. Boot the Pi and log in with `pi` / `raspberry`
+	
+		* Note: Depending on your `ssh_config`, you may need `ssh -o PubkeyAuthentication=no pi@hostname` on the first login.
 	
 	4. `sudo raspi-config`
 	
