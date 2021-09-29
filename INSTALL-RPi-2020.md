@@ -78,7 +78,7 @@ Basic Setup
 		   `PARTUUID=9730496b-03  /data  ext4  defaults,noatime  0  2`
 		   where you should also do `sudo mkdir -v /data`. Then reboot.
 		
-		4. `sudo mkdir -v /data/pi` and `sudo chown pi:pi /data/pi`
+		4. `sudo mkdir -v /data/pi`, `sudo chown pi:pi /data/pi`, and `ln -svnf /data/pi /home/pi/data`
 		
 		5. Note there is no point in setting up the "unattended upgrades" below,
 		   you'll have to do updates manually. Also, while `fail2ban` (below) will
@@ -151,9 +151,9 @@ Basic Setup
 
 	1. `sudo cp -v /etc/fail2ban/jail.conf /etc/fail2ban/jail.local`
 	
-	2. File `/etc/fail2ban/action.d/ufw.conf` should exist
+	2. `ls -l /etc/fail2ban/action.d/ufw.conf` - file should exist
 	
-	3. File `/etc/fail2ban/jail.d/defaults-debian.conf`
+	3. `cat /etc/fail2ban/jail.d/defaults-debian.conf`:
 	
 		- Should contain `enabled = true` in section `[sshd]`
 		- Add additional enables here if needed, for example,
@@ -200,6 +200,7 @@ Basic Setup
 
 	sudo apt-get install alpine postfix bsd-mailx
 	sudo vi /etc/postfix/main.cf
+	#=> correct "myhostname" if necessary
 	#=> add the line "smtp_tls_security_level = may"
 	#=> add the line "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
 	sudo dpkg-reconfigure postfix
@@ -241,10 +242,10 @@ Basic Setup
 		2. When you connect to the RPi via SSH, use `ssh -R12333 pi@...`
 		
 		3. Then, commands that support it, you can use e.g. `ALL_PROXY=socks5h://localhost:12333 curl http://example.com`,
-		   for other commands use e.g. `sudo proxychains4 apt-get update` or `proxychains4 -q cpanm ...`
+		   for other commands use e.g. `sudo proxychains4 -q apt-get update` or `proxychains4 -q cpanm ...`
 	
 	- Sometimes, on some WiFi nets, WiFi will stop working unless I reboot the Pi once in a while.
-	  This can be done via `sudo -i crontab -e`: `0 5 * * *  /sbin/shutdown --reboot +5; /usr/bin/wall 'Reboot in 5 minutes!'`
+	  This can be done via e.g. `sudo -i crontab -e`: `0 8 * * * /sbin/shutdown --reboot +5 2>/dev/null`
 	
 	- Serial port: `sudo adduser pi dialout`, `stty -F /dev/ttyS0 19200 cs8 -parenb raw -crtscts -echo`, `cat /dev/ttyS0`
 	  (Also: `minicom -D/dev/ttyS0` and `screen /dev/ttyS0 19200`)
