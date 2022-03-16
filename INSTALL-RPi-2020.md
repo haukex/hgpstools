@@ -13,11 +13,6 @@ Introduction
 These instructions assume you have some basic knowledge of using
 a Raspberry Pi and Raspbian / Debian.
 
-Note: Raspberry Pi OS 64-bit is currently (July 2020) still in beta and can be obtained from
-<https://downloads.raspberrypi.org/raspios_arm64/images/>.
-Older Raspbian images can be obtained from
-<https://downloads.raspberrypi.org/raspbian_lite/images/>.
-
 Last tested:
 
 - May 2020 on a Raspberry Pi Zero W with Raspbian Buster Lite 2020-02-13
@@ -54,7 +49,7 @@ Basic Setup
 	
 	2. On the `rootfs` partition:
 	
-		1. Edit `/etc/hostname` and set the desired hostname,
+		1. Edit `/etc/hostname` and set the desired hostname
 		
 		2. Edit `/etc/hosts` to rename the `raspberrypi` entry as well
 		
@@ -63,16 +58,16 @@ Basic Setup
 		   and (optionally generating a new SSH key for this) copy your public SSH key
 		   to `authorized_keys` in that directory, for example:
 			
-					sudo mkdir -vp home/pi/.ssh
-					sudo cp -v ~/.ssh/id_rsa.pub home/pi/.ssh/authorized_keys
-					sudo chmod -v 700 home/pi/.ssh
-					sudo chmod -v 600 home/pi/.ssh/authorized_keys
-					sudo chown -Rv `stat -c %u:%g home/pi` home/pi/.ssh
+				sudo mkdir -vp home/pi/.ssh
+				sudo cp -v ~/.ssh/id_rsa.pub home/pi/.ssh/authorized_keys
+				sudo chmod -v 700 home/pi/.ssh
+				sudo chmod -v 600 home/pi/.ssh/authorized_keys
+				sudo chown -Rv `stat -c %u:%g home/pi` home/pi/.ssh
 			
 			Also edit `/etc/ssh/sshd_config` and set:
 			
-					PermitRootLogin no
-					PasswordAuthentication no
+				PermitRootLogin no
+				PasswordAuthentication no
 	
 	3. *Optional Procedure:* Protecting the SD card against wear and sudden power-offs
 	   by making root FS read-only ("overlay filesystem") with a writable data partition
@@ -103,7 +98,7 @@ Basic Setup
 		   the logs it uses) is placed on the `/data` partition.
 		
 		6. If setting up `postfix` and `alpine`, do this afterwards:
-		
+			
 				sudo mkdir -v /data/spool
 				sudo systemctl stop postfix
 				ls -l /var/spool/mail  # => should normally be a symlink to ../mail !
@@ -156,7 +151,7 @@ Basic Setup
 
 	- `sudo ufw logging off`, if logging messages fill up the syslog too much
 
-4. **fail2ban**
+3. **fail2ban**
 
 	1. `sudo cp -v /etc/fail2ban/jail.conf /etc/fail2ban/jail.local`
 	
@@ -186,11 +181,11 @@ Basic Setup
 		- `sudo zgrep 'Ban' /var/log/fail2ban.log*`
 	
 	7. Note: Manual banning of repeat offenders:
-
+	
 		- `sudo zgrep Ban /var/log/fail2ban.log* | perl -wMstrict -Mvars=%x -nale '$x{$F[7]}++}{print "$_\t$x{$_}" for grep {$x{$_}>1} sort { $x{$b}<=>$x{$a} } keys %x'`
 		- `sudo ufw deny from ADDRESS comment 'too many failed login attempts'`
 
-5. **Crontab** to broadcast RPi's address and name
+4. **Crontab** to broadcast RPi's address and name
 
 	1. `crontab -e`
 		
@@ -206,8 +201,8 @@ Basic Setup
 	
 	4. Can use `udplisten.pl` from this repository to listen for the broadcasts.
 
-6. **Mail**: Configure Postfix either as "Local only" or "Internet Site" as appropriate in the following steps:
-
+5. **Mail**: Configure Postfix either as "Local only" or "Internet Site" as appropriate in the following steps:
+	
 		sudo apt-get install alpine postfix bsd-mailx
 		sudo vi /etc/postfix/main.cf
 		#=> correct "myhostname" if necessary
@@ -220,7 +215,7 @@ Basic Setup
 		alpine
 		# Configure "User Domain" and anything else as needed
 
-7. **Unattended Upgrades**
+6. **Unattended Upgrades**
 
 	1. `sudo apt-get install unattended-upgrades`
 	
@@ -238,9 +233,10 @@ Basic Setup
 			APT::Periodic::AutocleanInterval "7";
 	
 	4. Test with `sudo unattended-upgrade -d -v --dry-run`
+	
 	5. Enable with `sudo dpkg-reconfigure --priority=low unattended-upgrades`
 
-8. **Miscellaneous**
+7. **Miscellaneous**
 
 	- For network time, `sudo apt-get install --no-install-recommends ntp` and edit `/etc/ntp.conf` as appropriate.
 	
@@ -264,7 +260,7 @@ Basic Setup
 Author, Copyright, and License
 ------------------------------
 
-Copyright (c) 2016-2021 Hauke Dämpfling <haukex@zero-g.net>
+Copyright (c) 2016-2022 Hauke Dämpfling <haukex@zero-g.net>
 at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
 Berlin, Germany, <http://www.igb-berlin.de/>
 
