@@ -43,14 +43,14 @@ Basic Setup
 		3. Edit `wpa_supplicant.conf` to the following (make sure file has LF line endings;
 		   <https://www.raspberrypi.org/documentation/configuration/wireless/headless.md>)
 			
-			ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-			update_config=1
-			country=<Insert 2 letter ISO 3166-1 country code here, e.g. DE>
-			
-			network={
-				ssid="ssid"
-				psk="pass"
-			}
+				ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+				update_config=1
+				country=<Insert 2 letter ISO 3166-1 country code here, e.g. DE>
+				
+				network={
+					ssid="ssid"
+					psk="pass"
+				}
 	
 	2. On the `rootfs` partition:
 	
@@ -143,9 +143,9 @@ Basic Setup
 	
 	2. `sudo vi /etc/ssh/sshd_config`
 		
-		PermitRootLogin no
-		# Careful with the next one, it depends!
-		PasswordAuthentication no
+			PermitRootLogin no
+			# Careful with the next one, it depends!
+			PasswordAuthentication no
 
 4. **fail2ban**
 
@@ -177,6 +177,7 @@ Basic Setup
 		- `sudo zgrep 'Ban' /var/log/fail2ban.log*`
 	
 	7. Note: Manual banning of repeat offenders:
+
 		- `sudo zgrep Ban /var/log/fail2ban.log* | perl -wMstrict -Mvars=%x -nale '$x{$F[7]}++}{print "$_\t$x{$_}" for grep {$x{$_}>1} sort { $x{$b}<=>$x{$a} } keys %x'`
 		- `sudo ufw deny from ADDRESS comment 'too many failed login attempts'`
 
@@ -184,13 +185,13 @@ Basic Setup
 
 	1. `crontab -e`
 		
-		@reboot    hostname | socat -s - UDP-DATAGRAM:255.255.255.255:12340,broadcast 2>/dev/null
-		* * * * *  hostname | socat -s - UDP-DATAGRAM:255.255.255.255:12340,broadcast 2>/dev/null
+			@reboot    hostname | socat -s - UDP-DATAGRAM:255.255.255.255:12340,broadcast 2>/dev/null
+			* * * * *  hostname | socat -s - UDP-DATAGRAM:255.255.255.255:12340,broadcast 2>/dev/null
 	
 	2. In `/etc/rsyslog.conf`, apply this patch:
-	
-		-*.*;auth,authpriv.none          -/var/log/syslog
-		+*.*;cron,auth,authpriv.none     -/var/log/syslog
+		
+			-*.*;auth,authpriv.none          -/var/log/syslog
+			+*.*;cron,auth,authpriv.none     -/var/log/syslog
 	
 	3. `sudo systemctl restart rsyslog`
 	
@@ -198,17 +199,17 @@ Basic Setup
 
 6. **Mail**: Configure Postfix either as "Local only" or "Internet Site" as appropriate in the following steps:
 
-	sudo apt-get install alpine postfix bsd-mailx
-	sudo vi /etc/postfix/main.cf
-	#=> correct "myhostname" if necessary
-	#=> add the line "smtp_tls_security_level = may"
-	#=> add the line "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
-	sudo dpkg-reconfigure postfix
-	echo "root: pi" | sudo tee -a /etc/aliases && cat /etc/aliases
-	sudo newaliases && sudo systemctl restart postfix
-	echo "This is a mailx test" | mailx -s "mailx test" root
-	alpine
-	# Configure "User Domain" and anything else as needed
+		sudo apt-get install alpine postfix bsd-mailx
+		sudo vi /etc/postfix/main.cf
+		#=> correct "myhostname" if necessary
+		#=> add the line "smtp_tls_security_level = may"
+		#=> add the line "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
+		sudo dpkg-reconfigure postfix
+		echo "root: pi" | sudo tee -a /etc/aliases && cat /etc/aliases
+		sudo newaliases && sudo systemctl restart postfix
+		echo "This is a mailx test" | mailx -s "mailx test" root
+		alpine
+		# Configure "User Domain" and anything else as needed
 
 7. **Unattended Upgrades**
 
@@ -220,12 +221,12 @@ Basic Setup
 		- Set `Unattended-Upgrade::Mail` to `pi@localhost`
 	
 	3. `sudo vi /etc/apt/apt.conf.d/20auto-upgrades`
-	
-		APT::Periodic::Update-Package-Lists "1";
-		APT::Periodic::Unattended-Upgrade "1";
-		APT::Periodic::Download-Upgradeable-Packages "1";
-		//APT::Periodic::Verbose "1";
-		APT::Periodic::AutocleanInterval "7";
+		
+			APT::Periodic::Update-Package-Lists "1";
+			APT::Periodic::Unattended-Upgrade "1";
+			APT::Periodic::Download-Upgradeable-Packages "1";
+			//APT::Periodic::Verbose "1";
+			APT::Periodic::AutocleanInterval "7";
 	
 	4. Test with `sudo unattended-upgrade -d -v --dry-run`
 	5. Enable with `sudo dpkg-reconfigure --priority=low unattended-upgrades`
