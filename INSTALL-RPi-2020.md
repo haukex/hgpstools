@@ -57,6 +57,22 @@ Basic Setup
 		1. Edit `/etc/hostname` and set the desired hostname,
 		
 		2. Edit `/etc/hosts` to rename the `raspberrypi` entry as well
+		
+		3. **Security:** Set up SSH key-only auth before first boot:
+		   Create `/home/pi/.ssh` and `chown` it to the same UID & GID as `/home/pi`,
+		   and (optionally generating a new SSH key for this) copy your public SSH key
+		   to `authorized_keys` in that directory, for example:
+			
+					sudo mkdir -vp home/pi/.ssh
+					sudo cp -v ~/.ssh/id_rsa.pub home/pi/.ssh/authorized_keys
+					sudo chmod -v 700 home/pi/.ssh
+					sudo chmod -v 600 home/pi/.ssh/authorized_keys
+					sudo chown -Rv `stat -c %u:%g home/pi` home/pi/.ssh
+			
+			Also edit `/etc/ssh/sshd_config` and set:
+			
+					PermitRootLogin no
+					PasswordAuthentication no
 	
 	3. *Optional Procedure:* Protecting the SD card against wear and sudden power-offs
 	   by making root FS read-only ("overlay filesystem") with a writable data partition
@@ -105,13 +121,16 @@ Basic Setup
 		   that need to persist across reboots, you'll need to disable and re-enable this
 		   option, rebooting each time.
 	
-	3. Boot the Pi and log in with `pi` / `raspberry`
-	
-		* Note: Depending on your `ssh_config`, you may need `ssh -o PubkeyAuthentication=no pi@hostname` on the first login.
+	3. Boot the Pi and log in with ssh user `pi`; you can make the login with this username
+	   automatic by putting the following in `~/.ssh/config` on your local machine:
+		
+			Host yourpihostname
+				User pi
+				IdentityFile ~/.ssh/id_rsa_yourprivkeyfile
 	
 	4. `sudo raspi-config`
 	
-		1. **Password**, Hostname (if not done above)
+		1. **Set a password**, and if not done above, the hostname
 		
 		2. Locales: Add needed locales (for me, `en_US.UTF-8` and `de_DE.UTF-8`),
 		   don't delete existing locales, set `C.UTF-8` as default
@@ -136,16 +155,6 @@ Basic Setup
 2. **UFW**: `sudo ufw allow OpenSSH && sudo ufw enable`
 
 	- `sudo ufw logging off`, if logging messages fill up the syslog too much
-
-3. **SSH**:
-
-	1. Set up SSH keys
-	
-	2. `sudo vi /etc/ssh/sshd_config`
-		
-			PermitRootLogin no
-			# Careful with the next one, it depends!
-			PasswordAuthentication no
 
 4. **fail2ban**
 
