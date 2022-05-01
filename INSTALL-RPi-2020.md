@@ -20,6 +20,7 @@ Last tested:
 - January 2021 on a Raspberry Pi 3B with Raspberry Pi OS (32-bit) Lite 2020-12-02
 - May 2021 on a Raspberry Pi 3B+ with Raspberry Pi OS (32-bit) Lite 2021-03-04
 - September 2021 on a Raspberry Pi 3B+ with Rasperry Pi OS (32-bit) Lite 2021-05-07
+- May 2022 on a Raspberry Pi 3B+ with Raspberry Pi OS Lite (32-bit) 2022-04-04 (bullseye)
 
 
 Basic Setup
@@ -206,10 +207,11 @@ Basic Setup
 		sudo apt-get install alpine postfix bsd-mailx
 		sudo vi /etc/postfix/main.cf
 		#=> correct "myhostname" if necessary
-		#=> add the line "smtp_tls_security_level = may"
-		#=> add the line "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
-		sudo dpkg-reconfigure postfix
-		echo "root: pi" | sudo tee -a /etc/aliases && cat /etc/aliases
+		#=> if it doesn't exist, add the line "smtp_tls_security_level = may"
+		#=> if this option or the option "smtp_tls_CApath" doesn't exist,
+		#   add the line "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
+		sudo dpkg-reconfigure postfix  # and configure as appropriate
+		echo "root: pi" | sudo tee -a /etc/aliases && echo "---" && cat /etc/aliases
 		sudo newaliases && sudo systemctl restart postfix
 		echo "This is a mailx test" | mailx -s "mailx test" root
 		alpine
