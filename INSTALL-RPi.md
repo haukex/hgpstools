@@ -11,7 +11,7 @@ RPi Basic Installation and Serial Logging Daemon and Utilities
 --------------------------------------------------------------
 
 **Notice:** The basic Raspberry Pi setup notes in the following have
-been superseded by `INSTALL-RPi-2020.md`!
+been superseded by `BaseInstall.md` at <https://gitlab.igb-berlin.de/haukex/raspinotes>!
 
 These instructions assume you have some basic knowledge of using
 a Raspberry Pi and Raspbian / Debian.
