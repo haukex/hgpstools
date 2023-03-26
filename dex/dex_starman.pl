@@ -10,7 +10,7 @@ Starman Server for DataEXchange
 B<Alpha testing version!>
 
 This script uses L<Daemon::Control|Daemon::Control>,
-see L<https://bitbucket.org/haukex/hgpstools/src/HEAD/Daemon_Control.md>
+see F<Daemon_Control.md> (part of this repository)
 for usage information.
 
 Note on Debian-based systems it should be possible to install Starman

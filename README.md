@@ -25,10 +25,6 @@ The scripts are written in [Perl](http://www.perl.org/)
 and are intended for use on \*NIX systems
 (some scripts may work on Windows but that is untested).
 
-These tools currently live at
-<https://bitbucket.org/haukex/hgpstools/>.
-There is also an issue tracker there.
-
 In general, you can get each tool's documentation via `perldoc <filename>`.
 In a few places, not every configuration option is documented, and
 you may still need to have a look at the code.
@@ -38,12 +34,13 @@ have a look around this repository to discover all the available scripts.
 *	**`INSTALL-RPi-2020.md`**
 	
 	The instructions I use on getting a basic Raspberry Pi setup.
+	**Moved to <https://github.com/haukex/raspinotes/blob/main/BaseInstall.md>**!
 	
 *	**`INSTALL-RPi.md`**
 	
-	Instructions on how to set up the serial logging daemon (mentioned below)
-	on a Raspberry Pi. **Note** that the general setup instructions in this
-	file have been superseded by the above.
+	Instructions on how to set up the serial logging daemon (mentioned below) on a Raspberry Pi.
+	The general setup instructions in this file have been **superseded by**
+	**<https://github.com/haukex/raspinotes/blob/main/BaseInstall.md>**!
 	
 *	**`RPi3_Adafruit-GPS_NTP-chrony.md`**  
 	

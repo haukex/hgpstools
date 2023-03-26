@@ -7,11 +7,14 @@ at the Leibniz Institute of Freshwater Ecology and Inland Fisheries (IGB),
 Berlin, Germany, <http://www.igb-berlin.de/>
 (legal information below)*
 
+WARNING
+-------
+
+The basic Raspberry Pi setup notes in the following have
+been superseded by <https://github.com/haukex/raspinotes/blob/main/BaseInstall.md>!
+
 RPi Basic Installation and Serial Logging Daemon and Utilities
 --------------------------------------------------------------
-
-**Notice:** The basic Raspberry Pi setup notes in the following have
-been superseded by `BaseInstall.md` at <https://gitlab.igb-berlin.de/haukex/raspinotes>!
 
 These instructions assume you have some basic knowledge of using
 a Raspberry Pi and Raspbian / Debian.
@@ -130,7 +133,7 @@ according to the installation instructions:
 	I used, but may be missing on older or *"lite"* versions: `git`, `dnsutils`
 	
 4.	In a suitable directory (like `/home/pi`) do:
-`git clone --recursive https://bitbucket.org/haukex/hgpstools.git`
+`git clone --recursive https://github.com/haukex/hgpstools.git`
 	
 5.	Ensure that the Perl library path is set correctly. In the `hgpstools`
 	project, there are several `*.pm` files whose paths need to be provided

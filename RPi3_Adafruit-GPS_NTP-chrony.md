@@ -11,8 +11,8 @@ Last tested May 2016 on Raspbian jessie 2016-05-10
 and May 2018 on Raspbian stretch 2018-04-18 (*"lite"*).
 
 1.	**Install Raspbian Jessie** >= 2016-03-18 on the Raspberry Pi 3
-as per the instructions in `INSTALL-RPi.md` from:
-<https://bitbucket.org/haukex/hgpstools/src>
+as per the instructions from:
+<https://github.com/haukex/hgpstools/blob/master/INSTALL-RPi.md>
 	
 	a.	Make sure to follow the steps closely, including `sudo rpi-update`
 	and the Bluetooth UART workaround instructions. Also, during
