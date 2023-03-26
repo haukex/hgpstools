@@ -1,0 +1,15 @@
+name: Mirror this repo to a remote server
+on: push
+jobs:
+  github-mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - run: git remote add dest1 https://haukex:${{ secrets.IGBGL_MIRROR_TOKEN }}@gitlab.igb-berlin.de/haukex/hgpstools.git
+      - run: git fetch dest1
+      - run: git push dest1
+      - run: git remote add dest2 https://x-token-auth:${{ secrets.BB_MIRROR_TOKEN }}@bitbucket.org/haukex/hgpstools.git
+      - run: git fetch dest2
+      - run: git push dest2
