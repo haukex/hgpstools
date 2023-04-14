@@ -42,6 +42,9 @@ Further documentation:
 WARNING
 -------
 
+**My Wi-Fi Access Point notes are now located at:**
+**<https://github.com/haukex/raspinotes/blob/main/WiFiAP.md>**
+
 Always have a monitor and keyboard handy in case your network
 configuration changes don't work!
 
